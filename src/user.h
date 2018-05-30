@@ -7,8 +7,8 @@
 
 #ifndef user_h
 #define user_h
-#define SCALE_X 0.5
-#define SCALE_Y 0.5
+#define SCALE_X 1920.f
+#define SCALE_Y 1080.f
 #include "ofxBox2d.h"
 
 class user {
@@ -68,13 +68,14 @@ public:
     void update() {
         for(int i = 0; i<points.size();i++){
             if(points[i].x>0 && points[i].y>0)
-                circles[i]->setPosition(points[i].x*SCALE_X, points[i].y*SCALE_Y);
+                circles[i]->setPosition(points[i].x*ofGetWidth(), points[i].y*ofGetHeight());
         }
         box2d.update();
        // circles[0]->setPosition(200, 200);
     }
     void addPoint(int i, float x, float y) {
-        points[i] = ofPoint((x), (y));
+        points[i] = ofPoint((x/ SCALE_X), (y/ SCALE_Y));
+		// cout << x << " " << y << endl;
     }
     void clearPoints(){ points.clear(); points.resize(18); }
     void print() {

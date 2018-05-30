@@ -61,22 +61,19 @@ public:
     
     vector<double> getSample() {
         vector<double>sample;
-        sum_of_elements = 0.0;
-        
+
         for (auto p : theUser.points) {
             sample.push_back(p.x);
-            sum_of_elements += sample.back();
             sample.push_back(p.y);
-            sum_of_elements += sample.back();
+
         }
-        
         return sample;
     }
     vector<vector<double>>currentPose;
     ChainEvent chainevent;
     
     int drink = -1;
-    double sum_of_elements;
+
     //vector<vector<user>>fakeUsers;
     vector<string>parts;
     ofFbo learnedPoses;
@@ -84,4 +81,9 @@ public:
     int pose = 0;
 
 	ofFbo userFbo;
+	ofFbo feedBackFbo;
+	int numHumnas;
+	ofTrueTypeFont font;
+	vector<ofImage>poseImages;
+
 };

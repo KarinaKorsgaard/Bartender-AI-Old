@@ -18,7 +18,7 @@ void ofApp::setup() {
     chainevent.addEvent(3., LEARNING);
     chainevent.addEvent(20., TRAINING, true);
     chainevent.addEvent(2., PLAYING, true);
-    chainevent.addEvent(5., HIT);
+    chainevent.addEvent(500., HIT, true);
     chainevent.addEvent(5., POUR);
     chainevent.addEvent(3., RESET);
     
@@ -34,12 +34,18 @@ void ofApp::setup() {
 	ofClear(0);
 	userFbo.end();
 
+	feedBackFbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
+	feedBackFbo.begin();
+	ofClear(0);
+	feedBackFbo.end();
+
+	font.load("Brandon_med.otf", 32);
 }
 
 
 //--------------------------------------------------------------
 void ofApp::update() {
-    
+	
     /*
      OFXOSC_TYPE_INT32            = 'i',
      OFXOSC_TYPE_INT64            = 'h',
@@ -95,18 +101,24 @@ void ofApp::update() {
         r.getNextMessage(m);
         
         // cout << m.getAddress() << endl;
-        int id = ofToInt(ofSplitString(m.getAddress(), "person").back());
-        if (id<MAX_USERS) {
-            
-            // cout << m.getNumArgs() << endl;
-            int indx = 0;
-            for (int i = 0; i < m.getNumArgs(); i += 3) {
-                if (m.getArgType(i) == 102) {
-                    theUser.addPoint(indx, m.getArgAsFloat(i), m.getArgAsFloat(i + 1));
-                    indx++;
-                }
-            }
-        }
+		if (m.getAddress() == "/nohumans")numHumnas = 0;
+		else
+		{
+			int id = ofToInt(ofSplitString(m.getAddress(), "person").back());
+			numHumnas = id + 1;
+
+			if (id<MAX_USERS) {
+				isFrameNew = true;
+				// cout << m.getNumArgs() << endl;
+				int indx = 0;
+				for (int i = 0; i < m.getNumArgs(); i += 3) {
+					if (m.getArgType(i) == 102) {
+						theUser.addPoint(indx, m.getArgAsFloat(i), m.getArgAsFloat(i + 1));
+						indx++;
+					}
+				}
+			}
+		}
     }
 #endif
     chainevent.update();
@@ -114,38 +126,57 @@ void ofApp::update() {
     vector<double>sample;
     sample = getSample();
     
-    if (sum_of_elements != 0.0) {
-        
-        
+	theUser.update();
+
+	feedBackFbo.begin();
+	ofClear(0);
+	feedBackFbo.end();
+
+	int messageX = 50;
+	int messageY = ofGetHeight() - 70;
+
+	if (numHumnas == 1) {
+
         switch (chainevent.getName()) {
             case BEGIN_LEARNING: {
                 
                 if (chainevent.getTime() > 5.0) {
                     int drinkBeingLearned = numPoses%NUM_DRINKS;
                    // fakeUsers[drinkBeingLearned].clear();
+					ofPixels pix;
+					learnedPoses.readToPixels(pix);
+					ofSaveImage(pix, "outputs\\" + ofToString(numPoses)+".png");
+
+					ofImage img;
+					img.load("outputs\\" + ofToString(numPoses)+".png");
+					poseImages.push_back(img);
+
+					learnedPoses.begin();
+					ofClear(0);
+					learnedPoses.end();
+
                     chainevent.next();
                 }
-                else cout << "get ready for next pose in: " << int(5.0 - chainevent.getTime()) << " sec!" << endl;
+
+
+				feedBackFbo.begin();
+				font.drawString("Get in position in "+ofToString(5.0 - chainevent.getTime(), 0)+" seconds!", messageX, messageY);
+				ofDrawRectangle(0, ofGetHeight() - 50, (chainevent.getTime() / 5.0)*ofGetWidth(), 50);
+				feedBackFbo.end();
+
                 break;
             }
             case LEARNING: {
                 
                 classifier.addSample(sample, numPoses);
                 int drinkBeingLearned = numPoses%NUM_DRINKS;
-                //currentPose[drinkBeingLearned].insert(currentPose[drinkBeingLearned].end(), sample.begin(), sample.end());
-                if(isFrameNew){
-                    //for(int i = 0; i<users.size();i++){
-                        //fakeUsers[drinkBeingLearned].push_back(users[i]);
-                        ofEnableAlphaBlending();
-                        ofSetColor(255-30*numPoses, 30*numPoses, 20*numPoses, 150);
-                        ofSetLineWidth(10);
+
                         learnedPoses.begin();
-                        theUser.draw();
+						ofSetColor(255, 255, 255, 100);
+						ofNoFill();
+						theUser.draw();
                         learnedPoses.end();
-                        ofDisableAlphaBlending();
-                        ofSetLineWidth(1);
-                    //}
-                }
+ 
                 
                 if (chainevent.getTime()>chainevent.getDuration() - 0.5) {
                     
@@ -163,7 +194,9 @@ void ofApp::update() {
                 
             case TRAINING: {
                 //statements
-                cout << "TRAINING" << endl;
+				feedBackFbo.begin();
+				font.drawString("Just a second.. Im learning", messageX, messageY);
+				feedBackFbo.end();
                 if (classifier.isTrained())chainevent.next();
                 break;
             }
@@ -171,29 +204,39 @@ void ofApp::update() {
                 
                 //statements
                 pose = classifier.predict(sample);
-                cout << "pose "<< pose << endl;
+
                 drink = -1;
                 for (int i = 0; i < NUM_DRINKS; i++) {
                     if (pose == poseMap[i]) {
                         chainevent.next();
                         drink = i;
+						break;
                     }
                 }
+				if (drink = -1) {
+					feedBackFbo.begin();
+					poseImages[pose].draw(messageX, messageY - 200, 200, 200);
+					font.drawString("That looks more like this:", messageX, messageY - 100);
+					feedBackFbo.end();
+				}
                 break;
             }
                 
                 
             case HIT: {
-                
+				feedBackFbo.begin();
+				font.drawString("YAY! no just hold that pose for "+ofToString(chainevent.getDuration()-chainevent.getTime(), 0) + " seconds more!", messageX, messageY);
+				feedBackFbo.end();
+
                 pose = classifier.predict(sample);
                 cout << pose << " drink: " << poseMap[drink] << endl;
                 if (pose != poseMap[drink])chainevent.back();
                 break;
             }
             case POUR: {
-                cout << "POUR: " << drink << endl;
-                // statements
-                // open valve
+				feedBackFbo.begin();
+				font.drawString("Well done! Hope you put your glass there...", messageX, messageY);
+				feedBackFbo.end();
                 break;
             }
             case RESET: {
@@ -206,13 +249,12 @@ void ofApp::update() {
                 break;
         }
     }
-    else {
-        // i cant see anything!
-        // cout << " i cant see anything!" << endl;
+    else if(numHumnas>1){
+        // cout 
+		feedBackFbo.begin();
+		font.drawString("I can only handle one person at a time. One of you, move away!", messageX, messageY);
+		feedBackFbo.end();
     }
-    
-    // cout << chainevent.getName() << " " <<int( chainevent.getTime()) << endl;
-    theUser.update();
 
 	ofEnableAlphaBlending();
 	userFbo.begin();
@@ -232,31 +274,13 @@ void ofApp::reset() {
 //--------------------------------------------------------------
 void ofApp::draw() {
     
-    learnedPoses.draw(0, 0);
-    
-    //for (auto user : users) {
-        // user.print();
-       // ofSetColor(255);
-       // theUser.draw();
-        
-    //}
-    ofPushMatrix();
-    ofScale(5.f,5.f);
-    ofDrawBitmapString("drink: "+ofToString(drink), 10, 10);
-    ofDrawBitmapString("pose: "+ofToString(pose), 10, 30);
-    ofPopMatrix();
-    
+
     ofSetColor(255);
-    
-    switch (chainevent.getName()) {
-        case BEGIN_LEARNING: {
-            ofDrawRectangle(0, ofGetHeight()-50, (chainevent.getTime()/chainevent.getDuration())*ofGetWidth(), 50);
-            break;
-        }
-        default:
-            break;
-    }
+
 	userFbo.draw(0,0);
+	feedBackFbo.draw(0, 0);
+	learnedPoses.draw(0, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
+	
 }
 
 //--------------------------------------------------------------
