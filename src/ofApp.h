@@ -82,4 +82,6 @@ public:
     ofFbo learnedPoses;
     bool isFrameNew = false;
     int pose = 0;
+
+	ofFbo userFbo;
 };

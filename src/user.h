@@ -27,10 +27,11 @@ public:
     
     
     vector<vector<int>>connects = {
-        {10,9,9,8,8,1,1,11,11,12,12,13},
+        {10,9,9,8,8,2,2,1,1,5,5,11,11,12,12,13},
         {4,3,3,2,2,1,1,5,5,6,6,7},
         {16,14,14,0,0,15,15,17},
-        {0,1}
+        {0,1}, 
+		{8, 11}
     };
     
     void setup() {
@@ -56,7 +57,9 @@ public:
                 
                 joint.get()->setup(box2d.getWorld(), circles[connects[i][u]].get()->body, circles[connects[i][u+1]].get()->body);
                 
-                joint.get()->setLength(50);
+                if(i==2)joint.get()->setLength(5);
+				else joint.get()->setLength(30);
+				// joint.get()->setFrequency(0);
                 joints.push_back(joint);
             }
         }
@@ -98,20 +101,33 @@ public:
 //        for (auto p : points) {
 //            ofDrawCircle(p * ofGetWidth(), 5);
 //        }
-        ofSetHexColor(0xf2ab01);
+        //ofSetHexColor(0xf2ab01);
 
-        for(int i=0; i<circles.size(); i++) {
+       /* for(int i=0; i<circles.size(); i++) {
             ofFill();
             ofSetHexColor(0x01b1f2);
             circles[i].get()->draw();
         }
-        
+        */
+
         for(int i=0; i<joints.size(); i++) {
-            ofSetHexColor(0x444342);
-            joints[i].get()->draw();
-            
+			vector<float> res = joints[i]->getData();
+			ofPushMatrix();
+			ofTranslate(res[0], res[1]);
+			ofRotate(res[2]);
+			ofDrawRectangle(-res[3] / 2.f, -5, res[3], 20);
+			ofPopMatrix();
         }
-        
+		ofPoint scale = ofPoint(SCALE_X, SCALE_Y);
+	/*	ofPath p;
+		p.moveTo(points[2] * scale);
+		p.lineTo(points[5] * scale);
+		p.lineTo(points[11] * scale);
+		p.lineTo(points[8] * scale);
+		p.lineTo(points[2] * scale);
+		p.draw();
+		*/
+		ofDrawCircle(points[0] * scale, 30);
     }
 };
 #endif /* user_h */

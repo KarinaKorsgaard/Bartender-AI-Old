@@ -7,7 +7,7 @@ void ofApp::setup() {
 #else
     r.setup(7000);
 #endif
-
+	ofBackground(0, 0, 0);
     
     theUser.setup();
     
@@ -28,6 +28,12 @@ void ofApp::setup() {
     learnedPoses.begin();
     ofClear(0);
     learnedPoses.end();
+
+	userFbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
+	userFbo.begin();
+	ofClear(0);
+	userFbo.end();
+
 }
 
 
@@ -207,6 +213,18 @@ void ofApp::update() {
     
     // cout << chainevent.getName() << " " <<int( chainevent.getTime()) << endl;
     theUser.update();
+
+	ofEnableAlphaBlending();
+	userFbo.begin();
+	ofFill();
+	ofSetColor(255, 255, 255, 40);
+	ofDrawRectangle(0,0,userFbo.getWidth(), userFbo.getHeight());
+	ofSetColor(255, 255, 255);
+	ofNoFill();
+	theUser.draw();
+
+	userFbo.end();
+
 }
 void ofApp::reset() {
     classifier.clearTrainingInstances();
@@ -218,8 +236,8 @@ void ofApp::draw() {
     
     //for (auto user : users) {
         // user.print();
-        ofSetColor(255);
-        theUser.draw();
+       // ofSetColor(255);
+       // theUser.draw();
         
     //}
     ofPushMatrix();
@@ -238,7 +256,7 @@ void ofApp::draw() {
         default:
             break;
     }
-    
+	userFbo.draw(0,0);
 }
 
 //--------------------------------------------------------------
