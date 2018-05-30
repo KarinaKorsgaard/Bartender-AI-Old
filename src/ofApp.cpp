@@ -2,7 +2,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-#ifdef RUNWAY
+#ifdef __APPLE__
     r.setup(57200);
 #else
     r.setup(7000);
@@ -53,7 +53,7 @@ void ofApp::update() {
      */
     ofSetWindowTitle(ofToString(ofGetFrameRate()));
     isFrameNew = false;
-#ifdef RUNWAY
+#ifdef __APPLE__
     while (r.hasWaitingMessages()) {
         ofxOscMessage m;
         r.getNextMessage(m);

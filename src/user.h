@@ -7,7 +7,8 @@
 
 #ifndef user_h
 #define user_h
-
+#define SCALE_X 0.5
+#define SCALE_Y 0.5
 #include "ofxBox2d.h"
 
 class user {
@@ -35,14 +36,14 @@ public:
     void setup() {
         box2d.init();
         box2d.setGravity(0, 0.3);
-        box2d.setFPS(30.0);
+        box2d.setFPS(60.0);
 
         //anchor.setup(box2d.getWorld(), 20, ofGetHeight()/2, 4);
-        
+		points.resize(18);
         // first we add just a few circles
         for(int i=0; i<18; i++) {
             shared_ptr<ofxBox2dCircle> circle = shared_ptr<ofxBox2dCircle>(new ofxBox2dCircle);
-            circle.get()->setPhysics(1.0, 0.1, 0.1);
+            circle.get()->setPhysics(1.0, 0., 5.1);
             circle.get()->setup(box2d.getWorld(), ofGetWidth()/2, 100+(i*20), 8);
             circles.push_back(circle);
         }
@@ -64,7 +65,7 @@ public:
     void update() {
         for(int i = 0; i<points.size();i++){
             if(points[i].x>0 && points[i].y>0)
-                circles[i]->setPosition(points[i].x*500, points[i].y*500);
+                circles[i]->setPosition(points[i].x*SCALE_X, points[i].y*SCALE_Y);
         }
         box2d.update();
        // circles[0]->setPosition(200, 200);

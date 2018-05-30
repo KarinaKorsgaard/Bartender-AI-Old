@@ -1,6 +1,6 @@
-#define RUNWAY
 
-#ifdef RUNWAY
+
+#ifdef __APPLE__
 #include "ofxJson.h"
 #endif
 
