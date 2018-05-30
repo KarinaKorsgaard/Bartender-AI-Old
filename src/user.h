@@ -8,109 +8,187 @@
 #ifndef user_h
 #define user_h
 
-#include "ofxBox2d.h"
-
 class user {
 public:
-    vector<ofPoint>points;
-    
-    ofxBox2d                                  box2d;   // the box2d world
-    //ofxBox2dCircle                            anchor;  // fixed anchor
-    vector      <shared_ptr<ofxBox2dCircle> > circles; // default box2d circles
-    vector      <shared_ptr<ofxBox2dJoint> >  joints;  // joints
-    
-    int userId;
-    float maxX;
-    float maxY;
-    
-    
-    
-    vector<vector<int>>connects = {
-        {10,9,9,8,8,1,1,11,11,12,12,13},
-        {4,3,3,2,2,1,1,5,5,6,6,7},
-        {16,14,14,0,0,15,15,17},
-        {0,1}
-    };
-    
-    void setup() {
-        box2d.init();
-        box2d.setGravity(0, 0.3);
-        box2d.setFPS(30.0);
 
-        //anchor.setup(box2d.getWorld(), 20, ofGetHeight()/2, 4);
-        
-        // first we add just a few circles
-        for(int i=0; i<18; i++) {
-            shared_ptr<ofxBox2dCircle> circle = shared_ptr<ofxBox2dCircle>(new ofxBox2dCircle);
-            circle.get()->setPhysics(1.0, 0.1, 0.1);
-            circle.get()->setup(box2d.getWorld(), ofGetWidth()/2, 100+(i*20), 8);
-            circles.push_back(circle);
-        }
-        
-        // now connect each circle with a joint
-        for(int i=0; i<connects.size(); i++) {
-            for(int u=0; u<connects[i].size(); u+=2) {
-                
-                shared_ptr<ofxBox2dJoint> joint = shared_ptr<ofxBox2dJoint>(new ofxBox2dJoint);
-                
-                joint.get()->setup(box2d.getWorld(), circles[connects[i][u]].get()->body, circles[connects[i][u+1]].get()->body);
-                
-                joint.get()->setLength(50);
-                joints.push_back(joint);
-            }
-        }
-    }
-    
-    void update() {
-        for(int i = 0; i<points.size();i++){
-            if(points[i].x>0 && points[i].y>0)
-                circles[i]->setPosition(points[i].x*500, points[i].y*500);
-        }
-        box2d.update();
-       // circles[0]->setPosition(200, 200);
-    }
-    void addPoint(int i, float x, float y) {
-        points[i] = ofPoint((x), (y));
-    }
-    void clearPoints(){ points.clear(); points.resize(18); }
-    void print() {
-        cout << "person" << userId << " " ;
-        for (auto p : points) {
-            cout << p.x << " " << p.y;
-        }
-        cout<<" "<<endl;
-        
-    }
+	int userId;
+	float maxX;
+	float maxY;
 
-    void draw() {
-        
-//        for (int i = 0; i<connects.size(); i++) {
-//            for (int u = 0; u < connects[i].size(); u+=2) {
-//                ofPoint p1 = points[connects[i][u]];
-//                ofPoint p2 = points[connects[i][u+1]];
-//
-//                if(p1.x>0 && p2.x>0)
-//                    ofDrawLine(p1 * ofGetWidth(), p2 * ofGetWidth());
-//            }
-//        }
-//
-//        for (auto p : points) {
-//            ofDrawCircle(p * ofGetWidth(), 5);
-//        }
-        ofSetHexColor(0xf2ab01);
+	vector<ofPoint>points;
+	vector<ofPoint>particles;
+	vector<ofImage>imgs;
 
-        for(int i=0; i<circles.size(); i++) {
-            ofFill();
-            ofSetHexColor(0x01b1f2);
-            circles[i].get()->draw();
-        }
-        
-        for(int i=0; i<joints.size(); i++) {
-            ofSetHexColor(0x444342);
-            joints[i].get()->draw();
-            
-        }
-        
-    }
+	vector<vector<int>>connects = {
+		{ 10,9,8,1,11,12,13 },
+		{ 4,3,2,1,5,6,7 },
+		{ 16,14,0,15,17 },
+		{ 0,1 }
+	};
+
+	void setup() {
+		points.resize(18);
+		particles.resize(18);
+
+		ofImage img;
+		img.load("jorge/head.png");
+		imgs.push_back(img);
+		img.load("jorge/body.png");
+		imgs.push_back(img);
+		img.load("jorge/leg_upper.png");
+		imgs.push_back(img);
+		img.load("jorge/leg_lower.png");
+		imgs.push_back(img);
+		img.load("jorge/arm_upper.png");
+		imgs.push_back(img);
+		img.load("jorge/arm_lower.png");
+		imgs.push_back(img);
+	}
+
+	void update() {
+		for (int i = 0; i<connects.size(); i++) {
+			for (int u = 0; u < connects[i].size(); u++) {
+				int p = connects[i][u];
+				
+
+				if (points[p].x == 0) {
+					if (u != connects[i].size() - 1) {
+						int pp = connects[i][u + 1];
+						if (points[pp].x > 0)
+							particles[p] = particles[p].getInterpolated(points[pp], .1);
+					}
+					if (u != 0) {
+						int pm = connects[i][u - 1];
+						if (points[pm].x > 0)
+							particles[p] = particles[p].getInterpolated(points[pm], .1);
+					}
+				}
+			}
+		}
+	}
+	void drawStomach() {
+		ofPath p;
+#ifdef RUNWAY
+		ofVec2f scale = ofVec2f(400, 400);
+#else
+		ofVec2f scale = ofVec2f(0.5, 0.5);
+#endif
+
+
+		
+		ofVec2f p1 = (points[2] + points[5]) / 2;
+		ofVec2f p2 = (points[11] + points[8]) / 2;
+		ofVec2f mean = (p1 + p2) / 2;
+		float orientation = getRotation(p1, p2);
+		float sizex = points[2].x - points[5].x;
+		float sizey = p1.y - p2.y;
+		
+		ofPushMatrix();
+		ofTranslate(mean.x * scale.x, mean.y * scale.y);
+		ofRotate(90+orientation);
+		imgs[1].draw(-sizex/2, -sizey/2, sizex, sizey);
+		ofPopMatrix();
+		
+		float aspect = sizex / imgs[1].getWidth();
+
+		ofPushMatrix();
+		ofTranslate(points[0] * scale);
+		ofRotate(180);
+		imgs[0].draw(-imgs[0].getWidth()*aspect / 2, -imgs[0].getHeight()*aspect , imgs[0].getWidth()*aspect, imgs[0].getHeight()*aspect);
+		ofPopMatrix();
+/*
+		mean = (points[2] + points[3]) / 2;
+		orientation = getRotation(points[5], points[6]);
+		ofPushMatrix();
+		ofTranslate(mean.x * scale.x, mean.y * scale.y);
+		ofRotate(90 + 180 + orientation);
+		drawImage(4, 20, (points[2] - points[3]).length());
+		ofPopMatrix();
+
+		mean = (points[3] + points[4]) / 2;
+		orientation = getRotation(points[6], points[7]);
+		ofPushMatrix();
+		ofTranslate(mean.x * scale.x, mean.y * scale.y);
+		ofRotate(90 + 180 + orientation);
+		drawImage(5, 22, (points[3] - points[4]).length());
+		ofPopMatrix();
+
+		mean = (points[5] + points[6]) / 2;
+		orientation = getRotation(points[5] , points[6]);
+		ofPushMatrix();
+		ofTranslate(mean.x * scale.x, mean.y * scale.y);
+		ofRotate(90 + 180 + orientation);
+		drawImage(4, 20, (points[5] - points[6]).length());
+		ofPopMatrix();
+
+		mean = (points[6] + points[7]) / 2;
+		orientation = getRotation(points[6] , points[7]);
+		ofPushMatrix();
+		ofTranslate(mean.x * scale.x, mean.y * scale.y);
+		ofRotate(90 + 180 + orientation);
+		drawImage(5, 22, (points[6]-points[7]).length());
+		ofPopMatrix();
+		*/
+		// ofDrawCircle(points[0] * scale, 20);
+
+	}
+	void drawImage(int i, float aspect) {
+		imgs[i].draw(-imgs[i].getWidth()*aspect / 2, -imgs[i].getHeight()*aspect/2, imgs[i].getWidth()*aspect, imgs[i].getHeight()*aspect);
+	}
+	void drawImage(int i, float w, float h) {
+		imgs[i].draw(-w / 2, -h/2, w, h);
+	}
+	float getRotation(ofVec2f a, ofVec2f b) {
+		return atan2(b.y - a.y, b.x - a.x) * 180 / PI;
+	}
+
+	void addPoint(int i, float x, float y) {
+		points[i] = ofPoint((x), (y));
+		if(x>0&&y>0)particles[i] = ofPoint((x), (y));
+	}
+	void clearPoints() { points.clear(); points.resize(18); }
+
+	void print() {
+		cout << "person" << userId << " ";
+		for (auto p : particles) {
+			cout << p.x << " " << p.y;
+		}
+		cout << " " << endl;
+
+	}
+
+	void draw() {
+
+		for (int i = 0; i<connects.size(); i++) {
+			for (int u = 0; u < connects[i].size() - 1; u++) {
+
+				ofPoint p1 = particles[connects[i][u]];
+				ofPoint p2 = particles[connects[i][u + 1]];
+
+
+#ifdef RUNWAY
+				p1 *= 400;
+				p2 *= 400;
+#else
+				p1 *= 0.5;
+				p2 *= 0.5;
+#endif
+
+				ofPoint p3 = ofPoint((p1.x + p2.x) / 2., (p2.y + p1.y) / 2.);
+				float p4 = (p2 - p1).length();
+
+				ofPushMatrix();
+				ofTranslate(p3.x, p3.y);
+				ofRotate(atan2(p2.y - p1.y, p2.x - p1.x) * 180 / PI);
+				ofDrawRectangle(-p4 / 2.f, -5, p4, 10);
+				ofPopMatrix();
+			}
+		}
+
+
+		drawStomach();
+
+	}
 };
 #endif /* user_h */
+#pragma once

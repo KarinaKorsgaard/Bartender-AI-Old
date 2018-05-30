@@ -1,5 +1,4 @@
 ofxAutoReloadedShader
-ofxBox2d
 ofxJSON
 ofxLearn
 ofxOsc
