@@ -8,8 +8,23 @@ void ofApp::setup() {
     r.setup(7000);
 #endif
 	ofBackground(0, 0, 0);
-    
-    theUser.setup();
+	test.listDevices();
+
+	test.setDeviceID(2);
+	test.setup(1920, 1080);
+	box2d.init();
+	box2d.setGravity(0, 0.3);
+	box2d.setFPS(60.0);
+
+	box2d.disableEvents();
+	box2d.disableGrabbing();
+
+	theUsers.resize(MAX_USERS);
+	for (int i = 0; i < MAX_USERS; i++) {
+		theUsers[i].setup(&box2d);
+	}
+	ofEnableAlphaBlending();
+
     
     poseMap.resize(NUM_DRINKS);
    // fakeUsers.resize(NUM_DRINKS);
@@ -107,13 +122,13 @@ void ofApp::update() {
 			int id = ofToInt(ofSplitString(m.getAddress(), "person").back());
 			numHumnas = id + 1;
 
-			if (id<MAX_USERS) {
+			if (id<theUsers.size()) {
 				isFrameNew = true;
 				// cout << m.getNumArgs() << endl;
 				int indx = 0;
 				for (int i = 0; i < m.getNumArgs(); i += 3) {
 					if (m.getArgType(i) == 102) {
-						theUser.addPoint(indx, m.getArgAsFloat(i), m.getArgAsFloat(i + 1));
+						theUsers[id].addPoint(indx, m.getArgAsFloat(i), m.getArgAsFloat(i + 1));
 						indx++;
 					}
 				}
@@ -126,7 +141,7 @@ void ofApp::update() {
     vector<double>sample;
     sample = getSample();
     
-	theUser.update();
+	for (int i = 0; i < MIN(numHumnas, theUsers.size()); i++)theUsers[i].update();
 
 	feedBackFbo.begin();
 	ofClear(0);
@@ -174,7 +189,7 @@ void ofApp::update() {
                         learnedPoses.begin();
 						ofSetColor(255, 255, 255, 100);
 						ofNoFill();
-						theUser.draw();
+						for (int i = 0; i <MIN(numHumnas, theUsers.size()); i++)theUsers[i].draw();
                         learnedPoses.end();
  
                 
@@ -213,10 +228,9 @@ void ofApp::update() {
 						break;
                     }
                 }
-				if (drink = -1) {
+				if (drink == -1) {
 					feedBackFbo.begin();
-					poseImages[pose].draw(messageX, messageY - 200, 200, 200);
-					font.drawString("That looks more like this:", messageX, messageY - 100);
+					font.drawString("Nej!", messageX, messageY);
 					feedBackFbo.end();
 				}
                 break;
@@ -225,11 +239,11 @@ void ofApp::update() {
                 
             case HIT: {
 				feedBackFbo.begin();
-				font.drawString("YAY! no just hold that pose for "+ofToString(chainevent.getDuration()-chainevent.getTime(), 0) + " seconds more!", messageX, messageY);
+				font.drawString("YAY! hold that pose for "+ofToString(chainevent.getDuration()-chainevent.getTime(), 0) + " seconds more!", messageX, messageY);
 				feedBackFbo.end();
 
                 pose = classifier.predict(sample);
-                cout << pose << " drink: " << poseMap[drink] << endl;
+                // cout << pose << " drink: " << poseMap[drink] << endl;
                 if (pose != poseMap[drink])chainevent.back();
                 break;
             }
@@ -254,19 +268,24 @@ void ofApp::update() {
 		feedBackFbo.begin();
 		font.drawString("I can only handle one person at a time. One of you, move away!", messageX, messageY);
 		feedBackFbo.end();
-    }
+	}
+	else if (numHumnas == 0) {
+		feedBackFbo.begin();
+		font.drawString("Try the pose drink AI machine...", messageX, messageY);
+		feedBackFbo.end();
+	}
 
-	ofEnableAlphaBlending();
 	userFbo.begin();
 	ofFill();
 	ofSetColor(255, 255, 255, 40);
 	ofDrawRectangle(0,0,userFbo.getWidth(), userFbo.getHeight());
 	ofSetColor(255, 255, 255);
 	ofNoFill();
-	theUser.draw();
-
+	for (int i = 0; i <MIN(numHumnas, theUsers.size()); i++)theUsers[i].draw();
 	userFbo.end();
 
+	box2d.update();
+	test.update();
 }
 void ofApp::reset() {
     classifier.clearTrainingInstances();
@@ -280,7 +299,7 @@ void ofApp::draw() {
 	userFbo.draw(0,0);
 	feedBackFbo.draw(0, 0);
 	learnedPoses.draw(0, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
-	
+	//test.draw(learnedPoses.getWidth() / 4, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
 }
 
 //--------------------------------------------------------------

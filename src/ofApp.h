@@ -14,7 +14,7 @@
 #include "chainEvent.h"
 #include "user.h"
 
-#define MAX_USERS 1
+#define MAX_USERS 3
 #define NUM_DRINKS 1
 
 
@@ -23,7 +23,7 @@
 class ofApp : public ofBaseApp {
     
 public:
-    
+	ofVideoGrabber test;
     void setup();
     void update();
     void draw();
@@ -43,7 +43,7 @@ public:
     
     
     ofxOscReceiver r;
-    user theUser;
+    vector<user> theUsers;
     
     bool isLearning = false;
     bool stopLearning = false;
@@ -62,7 +62,7 @@ public:
     vector<double> getSample() {
         vector<double>sample;
 
-        for (auto p : theUser.points) {
+        for (auto p : theUsers[0].points) {
             sample.push_back(p.x);
             sample.push_back(p.y);
 
@@ -86,4 +86,5 @@ public:
 	ofTrueTypeFont font;
 	vector<ofImage>poseImages;
 
+	ofxBox2d box2d;
 };
