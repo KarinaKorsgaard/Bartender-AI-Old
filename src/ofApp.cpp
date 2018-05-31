@@ -25,17 +25,17 @@ void ofApp::setup() {
 	}
 	ofEnableAlphaBlending();
 
-    
-    poseMap.resize(NUM_DRINKS);
-   // fakeUsers.resize(NUM_DRINKS);
+
     
     chainevent.addEvent(10., BEGIN_LEARNING);
     chainevent.addEvent(3., LEARNING);
     chainevent.addEvent(20., TRAINING, true);
     chainevent.addEvent(2., PLAYING, true);
-    chainevent.addEvent(500., HIT, true);
+    chainevent.addEvent(3., HIT1);
+    chainevent.addEvent(3., HIT2);
     chainevent.addEvent(5., POUR);
     chainevent.addEvent(3., RESET);
+    chainevent.addEvent(3., TRYAGAIN);
     
     parts = {"Nose", "Neck", "Right_Shoulder", "Right_Elbow", "Right_Wrist", "Left_Shoulder", "Left_Elbow", "Left_Wrist", "Right_Hip", "Right_Knee", "Right_Ankle", "Left_Hip", "Left_Knee", "Left_Ankle", "Right_Eye", "Left_Eye", "Right_Ear", "Left_Ear", "Background"};
     
@@ -55,6 +55,19 @@ void ofApp::setup() {
 	feedBackFbo.end();
 
 	font.load("Brandon_med.otf", 32);
+    
+    gui.setup();
+    gui.add(left.set("left", 0, 0, ofGetWidth()));
+    gui.add(right.set("right", 0, 0, ofGetWidth()));
+    gui.add(top.set("top", 0, 0, ofGetHeight()));
+    gui.add(bottom.set("bottom", 0, 0, ofGetHeight()));
+    
+    gui.loadFromFile("settings.xml");
+    
+
+    drinkSequence.clear();
+    drinkSequence = {1, 2, 3};
+
 }
 
 
@@ -81,6 +94,7 @@ void ofApp::update() {
     ofSetWindowTitle(ofToString(ofGetFrameRate()));
     isFrameNew = false;
 #ifdef __APPLE__
+    // not up to date!
     while (r.hasWaitingMessages()) {
         ofxOscMessage m;
         r.getNextMessage(m);
@@ -92,7 +106,7 @@ void ofApp::update() {
         for(int i = 0; i<MIN(MAX_USERS, bodyPoints["humans"].size()); i++){
             int partIndx = 0;
             
-            theUser.clearPoints();
+            theUsers[i].clearPoints();
             
             for(int u = 0; u<bodyPoints["humans"][i].size(); u++){
                 isFrameNew = true;
@@ -102,7 +116,7 @@ void ofApp::update() {
                 
                 for(int p = partIndx; p<parts.size(); p++){
                     if(parts[p]==part){
-                        theUser.addPoint(p , x ,y);
+                        theUsers[i].addPoint(p , x ,y);
                         partIndx = p;
                         break;
                     }
@@ -116,19 +130,28 @@ void ofApp::update() {
         r.getNextMessage(m);
         
         // cout << m.getAddress() << endl;
-		if (m.getAddress() == "/nohumans")numHumnas = 0;
+		if (m.getAddress() == "/nohumans")numHumans = 0;
 		else
 		{
 			int id = ofToInt(ofSplitString(m.getAddress(), "person").back());
-			numHumnas = id + 1;
-
+            theUsers[id].pointsInView = 0;
+            
+            numHumans = MAX(id, numHumans);
+            
 			if (id<theUsers.size()) {
 				isFrameNew = true;
 				// cout << m.getNumArgs() << endl;
 				int indx = 0;
 				for (int i = 0; i < m.getNumArgs(); i += 3) {
 					if (m.getArgType(i) == 102) {
-						theUsers[id].addPoint(indx, m.getArgAsFloat(i), m.getArgAsFloat(i + 1));
+                        float x = m.getArgAsFloat(i);
+                        float y = m.getArgAsFloat(i + 1);
+                        
+                        if(x - left < right && y - top < bottom){
+                            theUsers[id].pointsInView ++;
+                        }
+                        
+						theUsers[id].addPoint(indx, x, y);
 						indx++;
 					}
 				}
@@ -138,64 +161,88 @@ void ofApp::update() {
 #endif
     chainevent.update();
     
-    vector<double>sample;
-    sample = getSample();
+    int userInView = -1;
+    for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
+        theUsers[i].update();
+        if (theUsers[i].isInView) {
+            numHumansInView ++;
+            userInView = i;
+        }
+    }
     
-	for (int i = 0; i < MIN(numHumnas, theUsers.size()); i++)theUsers[i].update();
-
+    
 	feedBackFbo.begin();
 	ofClear(0);
+    ofNoFill();
+    ofSetColor(200, 0, 0);
+    ofDrawRectangle(left, top, right-left, bottom-top);
+    if(drinkSequence[currentDrinkSequence]<poseImages.size()){
+        
+        for(int i = 0; i<averagePoses[currentDrinkSequence].size(); i+=2) {
+            ofDrawCircle(averagePoses[currentDrinkSequence][i] * SCALE_X, averagePoses[currentDrinkSequence][i+1] * SCALE_Y, 20);
+        }
+        
+        poseImages[drinkSequence[currentDrinkSequence]].draw(0,0);
+    }
 	feedBackFbo.end();
 
 	int messageX = 50;
 	int messageY = ofGetHeight() - 70;
 
-	if (numHumnas == 1) {
-
+	if (numHumansInView == 1) {
+        vector<double>sample;
+        user u = theUsers[userInView];
+        sample = getSample(u);
+        
         switch (chainevent.getName()) {
             case BEGIN_LEARNING: {
                 
-                if (chainevent.getTime() > 5.0) {
-                    int drinkBeingLearned = numPoses%NUM_DRINKS;
-                   // fakeUsers[drinkBeingLearned].clear();
-					ofPixels pix;
-					learnedPoses.readToPixels(pix);
-					ofSaveImage(pix, "outputs\\" + ofToString(numPoses)+".png");
+				feedBackFbo.begin();
+                float chainEventTime = (chainevent.getDuration()-chainevent.getTime());
+				font.drawString("Get in position in "+ ofToString(chainEventTime,0)+" seconds!", messageX, messageY);
+				ofDrawRectangle(0, ofGetHeight()-50, chainEventTime/chainevent.getDuration() * ofGetWidth(), 50);
+				feedBackFbo.end();
 
-					ofImage img;
-					img.load("outputs\\" + ofToString(numPoses)+".png");
-					poseImages.push_back(img);
-
-					learnedPoses.begin();
-					ofClear(0);
-					learnedPoses.end();
-
+                if (chainevent.getDuration()-chainevent.getTime() < 0.1) {
+                    learnedPoses.begin();
+                    ofClear(0);
+                    learnedPoses.end();
+                    
+                    vector<double>newAverage;
+                    newAverage = sample;
+                    averagePoses.push_back(newAverage);
+                    
                     chainevent.next();
                 }
-
-
-				feedBackFbo.begin();
-				font.drawString("Get in position in "+ofToString(5.0 - chainevent.getTime(), 0)+" seconds!", messageX, messageY);
-				ofDrawRectangle(0, ofGetHeight() - 50, (chainevent.getTime() / 5.0)*ofGetWidth(), 50);
-				feedBackFbo.end();
 
                 break;
             }
             case LEARNING: {
                 
                 classifier.addSample(sample, numPoses);
-                int drinkBeingLearned = numPoses%NUM_DRINKS;
-
-                        learnedPoses.begin();
-						ofSetColor(255, 255, 255, 100);
-						ofNoFill();
-						for (int i = 0; i <MIN(numHumnas, theUsers.size()); i++)theUsers[i].draw();
-                        learnedPoses.end();
+                std::transform (averagePoses[numPoses].begin(), averagePoses[numPoses].end(), sample.begin(), averagePoses[numPoses].begin(), std::plus<double>());
+                numSamples ++;
+                // foo: 21 41 61 81 101
+                learnedPoses.begin();
+                ofSetColor(255, 255, 255, 100);
+                ofNoFill();
+                u.draw();
+                learnedPoses.end();
  
                 
-                if (chainevent.getTime()>chainevent.getDuration() - 0.5) {
+                if (chainevent.getTime()>chainevent.getDuration() - 0.1) {
+                    ofPixels pix;
+                    learnedPoses.readToPixels(pix);
+                    ofSaveImage(pix, "outputs\\" + ofToString(numPoses)+".png");
                     
-                    poseMap[drinkBeingLearned] = numPoses;
+                    ofImage img;
+                    img.load("outputs\\" + ofToString(numPoses)+".png");
+                    poseImages.push_back(img);
+                    
+                    std::transform(averagePoses[numPoses].begin(), averagePoses[numPoses].end(), averagePoses[numPoses].begin(),
+                                   std::bind1st(std::multiplies<double>(),1.0/double(numSamples)));
+                    
+                    numSamples = 0;
                     numPoses++;
                     if (numPoses < 3)chainevent.beginEvents();
                     else {
@@ -218,33 +265,54 @@ void ofApp::update() {
             case PLAYING: {
                 
                 //statements
-                pose = classifier.predict(sample);
+                int currentPose = classifier.predict(sample);
 
-                drink = -1;
-                for (int i = 0; i < NUM_DRINKS; i++) {
-                    if (pose == poseMap[i]) {
-                        chainevent.next();
-                        drink = i;
-						break;
-                    }
+                if (currentPose == drinkSequence[currentDrinkSequence]) {
+                    chainevent.next();
+                    currentDrinkSequence ++;
                 }
-				if (drink == -1) {
+				else {
 					feedBackFbo.begin();
-					font.drawString("Nej!", messageX, messageY);
+					font.drawString("Ahh.. Not really!", messageX, messageY);
 					feedBackFbo.end();
 				}
                 break;
             }
                 
                 
-            case HIT: {
+            case HIT1: {
 				feedBackFbo.begin();
-				font.drawString("YAY! hold that pose for "+ofToString(chainevent.getDuration()-chainevent.getTime(), 0) + " seconds more!", messageX, messageY);
+				font.drawString("Great! Now do the next pose!", messageX, messageY);
+                float chainEventTime = (chainevent.getDuration()-chainevent.getTime())/chainevent.getDuration();
+                ofDrawRectangle(0, ofGetHeight() - 50, chainEventTime * ofGetWidth(), 50);
 				feedBackFbo.end();
 
-                pose = classifier.predict(sample);
-                // cout << pose << " drink: " << poseMap[drink] << endl;
-                if (pose != poseMap[drink])chainevent.back();
+                int currentPose = classifier.predict(sample);
+                if (currentPose == drinkSequence[currentDrinkSequence]) {
+                    chainevent.next();
+                    currentDrinkSequence ++;
+                }
+                if (chainevent.getDuration() - chainevent.getTime() < 0.1){
+                    chainevent.setTo(TRYAGAIN);
+                }
+                
+                break;
+            }
+            case HIT2: {
+                feedBackFbo.begin();
+                font.drawString("Now, do the last one to get a drinks!!", messageX, messageY);
+                float chainEventTime = (chainevent.getDuration()-chainevent.getTime())/chainevent.getDuration();
+                ofDrawRectangle(0, ofGetHeight() - 50, chainEventTime * ofGetWidth(), 50);
+                feedBackFbo.end();
+                
+                int currentPose = classifier.predict(sample);
+                if (currentPose == drinkSequence[currentDrinkSequence]) {
+                    chainevent.next();
+                }
+                if (chainevent.getDuration() - chainevent.getTime() < 0.1){
+                    chainevent.setTo(TRYAGAIN);
+                }
+                
                 break;
             }
             case POUR: {
@@ -255,25 +323,50 @@ void ofApp::update() {
             }
             case RESET: {
                 // statements
-                cout << "RESET" << endl;
+                int i = ofRandom(numPoses);
+                int j = ofRandom(numPoses-1);
+                int k = ofRandom(numPoses-2);
+                j += j >= i;
+                k += k >= std::min(i, j);
+                k += k >= std::max(i, j);
+                
+                drinkSequence.clear();
+                drinkSequence = {i, j, k};
+                cout << i<<j<<k << endl;
+                
+                currentDrinkSequence = 0;
+                
                 chainevent.setTo(PLAYING);
+                break;
+            }
+            case TRYAGAIN: {
+                // statements
+                feedBackFbo.begin();
+                font.drawString("Ej! You need to be faster than that - Try again!", messageX, messageY);
+                feedBackFbo.end();
+                
+                if (chainevent.getDuration() - chainevent.getTime() < 0.1)chainevent.setTo(PLAYING);
                 break;
             }
             default:
                 break;
         }
     }
-    else if(numHumnas>1){
-        // cout 
+    else if (numHumans>1) {
 		feedBackFbo.begin();
-		font.drawString("I can only handle one person at a time. One of you, move away!", messageX, messageY);
+		font.drawString("Please, one at a time!", messageX, messageY);
 		feedBackFbo.end();
 	}
-	else if (numHumnas == 0) {
+	else if (numHumans == 0) {
 		feedBackFbo.begin();
-		font.drawString("Try the pose drink AI machine...", messageX, messageY);
+		font.drawString("Anoone there?", messageX, messageY);
 		feedBackFbo.end();
 	}
+    else if (numHumans > 0 && numHumansInView == 0) {
+        feedBackFbo.begin();
+        font.drawString("One of you, step inside the square to try the pose machine!", messageX, messageY);
+        feedBackFbo.end();
+    }
 
 	userFbo.begin();
 	ofFill();
@@ -281,7 +374,7 @@ void ofApp::update() {
 	ofDrawRectangle(0,0,userFbo.getWidth(), userFbo.getHeight());
 	ofSetColor(255, 255, 255);
 	ofNoFill();
-	for (int i = 0; i <MIN(numHumnas, theUsers.size()); i++)theUsers[i].draw();
+	for (int i = 0; i <MIN(numHumans, theUsers.size()); i++)theUsers[i].draw();
 	userFbo.end();
 
 	box2d.update();
@@ -295,10 +388,10 @@ void ofApp::draw() {
     
 
     ofSetColor(255);
-
 	userFbo.draw(0,0);
 	feedBackFbo.draw(0, 0);
-	learnedPoses.draw(0, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
+    gui.draw();
+	//learnedPoses.draw(0, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
 	//test.draw(learnedPoses.getWidth() / 4, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
 }
 
@@ -355,4 +448,7 @@ void ofApp::gotMessage(ofMessage msg) {
 //--------------------------------------------------------------
 void ofApp::dragEvent(ofDragInfo dragInfo) {
     
+}
+void ofApp::exit(){
+    for(int i = 0; i<theUsers.size(); i++)theUsers[i].exit();
 }

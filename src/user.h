@@ -23,7 +23,8 @@ public:
     float maxX;
     float maxY;
     
-    
+    int pointsInView;
+    bool isInView;
     
     vector<vector<int>>connects = {
         {10,9,9,8,8,2,2,1,1,5,5,11,11,12,12,13},
@@ -67,6 +68,7 @@ public:
             if(points[i].x>0 && points[i].y>0)
                 circles[i]->setPosition(points[i].x*ofGetWidth(), points[i].y*ofGetHeight());
         }
+        isInView = pointsInView < 3;
        // box2d.update();
        // circles[0]->setPosition(200, 200);
     }
@@ -100,6 +102,10 @@ public:
 		// ofPoint scale = ofPoint(SCALE_X, SCALE_Y);
 
 		// ofDrawCircle(circles[0]->getB2DPosition() * scale, 30);
+    }
+    void exit(){
+        for(int i=0; i<joints.size(); i++) joints[i]->destroy();
+        for(int i=0; i<circles.size(); i++) circles[i]->destroy();
     }
 };
 #endif /* user_h */
