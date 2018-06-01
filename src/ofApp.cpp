@@ -12,12 +12,14 @@ void ofApp::setup() {
 
 	test.setDeviceID(2);
 	test.setup(1920, 1080);
-	box2d.init();
-	box2d.setGravity(0, 0.3);
-	box2d.setFPS(60.0);
 
-	box2d.disableEvents();
-	box2d.disableGrabbing();
+	box2d.init();
+	//box2d.setGravity(0, 0.0);
+	//box2d.setFPS(20.0);
+	//box2d.setIterations(10, 2);
+
+	//box2d.disableEvents();
+	//box2d.disableGrabbing();
 
 	theUsers.resize(MAX_USERS);
 	for (int i = 0; i < MAX_USERS; i++) {
@@ -27,7 +29,7 @@ void ofApp::setup() {
 
 
     
-    chainevent.addEvent(10., BEGIN_LEARNING);
+    chainevent.addEvent(3., BEGIN_LEARNING);
     chainevent.addEvent(3., LEARNING);
     chainevent.addEvent(20., TRAINING, true);
     chainevent.addEvent(2., PLAYING, true);
@@ -37,14 +39,13 @@ void ofApp::setup() {
     chainevent.addEvent(3., RESET);
     chainevent.addEvent(3., TRYAGAIN);
     
-    parts = {"Nose", "Neck", "Right_Shoulder", "Right_Elbow", "Right_Wrist", "Left_Shoulder", "Left_Elbow", "Left_Wrist", "Right_Hip", "Right_Knee", "Right_Ankle", "Left_Hip", "Left_Knee", "Left_Ankle", "Right_Eye", "Left_Eye", "Right_Ear", "Left_Ear", "Background"};
-    
+
     learnedPoses.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
     learnedPoses.begin();
     ofClear(0);
     learnedPoses.end();
 
-	userFbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
+	userFbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA32F_ARB);
 	userFbo.begin();
 	ofClear(0);
 	userFbo.end();
@@ -57,10 +58,10 @@ void ofApp::setup() {
 	font.load("Brandon_med.otf", 32);
     
     gui.setup();
-    gui.add(left.set("left", 0, 0, ofGetWidth()));
-    gui.add(right.set("right", 0, 0, ofGetWidth()));
-    gui.add(top.set("top", 0, 0, ofGetHeight()));
-    gui.add(bottom.set("bottom", 0, 0, ofGetHeight()));
+    gui.add(left.set("left", 0, 0, 1));
+    gui.add(right.set("right", 0, 0,1));
+    gui.add(top.set("top", 0, 0, 1));
+    gui.add(bottom.set("bottom", 0, 0, 1));
     
     gui.loadFromFile("settings.xml");
     
@@ -93,62 +94,33 @@ void ofApp::update() {
      */
     ofSetWindowTitle(ofToString(ofGetFrameRate()));
     isFrameNew = false;
-#ifdef __APPLE__
-    // not up to date!
+
     while (r.hasWaitingMessages()) {
         ofxOscMessage m;
         r.getNextMessage(m);
-        
-        string result = m.getArgAsString(0);
-        ofxJSONElement json = result;
-        const Json::Value& bodyPoints = json["results"];
-        
-        for(int i = 0; i<MIN(MAX_USERS, bodyPoints["humans"].size()); i++){
-            int partIndx = 0;
-            
-            theUsers[i].clearPoints();
-            
-            for(int u = 0; u<bodyPoints["humans"][i].size(); u++){
-                isFrameNew = true;
-                string part = bodyPoints["humans"][i][u][0].asString();
-                double x = bodyPoints["humans"][i][u][1].asDouble();
-                double y = bodyPoints["humans"][i][u][2].asDouble();
-                
-                for(int p = partIndx; p<parts.size(); p++){
-                    if(parts[p]==part){
-                        theUsers[i].addPoint(p , x ,y);
-                        partIndx = p;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-#else
-    while (r.hasWaitingMessages()) {
-        ofxOscMessage m;
-        r.getNextMessage(m);
-        
+		
         // cout << m.getAddress() << endl;
 		if (m.getAddress() == "/nohumans")numHumans = 0;
 		else
 		{
 			int id = ofToInt(ofSplitString(m.getAddress(), "person").back());
-            theUsers[id].pointsInView = 0;
-            
-            numHumans = MAX(id, numHumans);
+			
             
 			if (id<theUsers.size()) {
-				isFrameNew = true;
-				// cout << m.getNumArgs() << endl;
+
+				theUsers[id].pointsInView = 18;
+				numHumans = MAX(id + 1, numHumans);
+				
+				
 				int indx = 0;
 				for (int i = 0; i < m.getNumArgs(); i += 3) {
 					if (m.getArgType(i) == 102) {
-                        float x = m.getArgAsFloat(i);
-                        float y = m.getArgAsFloat(i + 1);
-                        
-                        if(x - left < right && y - top < bottom){
-                            theUsers[id].pointsInView ++;
+                        float x = m.getArgAsFloat(i) / SCALE_X;
+                        float y = m.getArgAsFloat(i + 1) / SCALE_Y;
+						// cout << x<< " "  << y << endl;
+                        if(x > left && x < right+left && y > top && y < bottom+top){
+                            theUsers[id].pointsInView --;
+							 // cout << "true" << endl;
                         }
                         
 						theUsers[id].addPoint(indx, x, y);
@@ -158,10 +130,12 @@ void ofApp::update() {
 			}
 		}
     }
-#endif
+
     chainevent.update();
     
     int userInView = -1;
+	numHumansInView = 0;
+
     for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
         theUsers[i].update();
         if (theUsers[i].isInView) {
@@ -175,14 +149,14 @@ void ofApp::update() {
 	ofClear(0);
     ofNoFill();
     ofSetColor(200, 0, 0);
-    ofDrawRectangle(left, top, right-left, bottom-top);
+    ofDrawRectangle(left* ofGetWidth(), top*ofGetHeight(), (right)*ofGetWidth(), (bottom)*ofGetHeight());
     if(drinkSequence[currentDrinkSequence]<poseImages.size()){
         
         for(int i = 0; i<averagePoses[currentDrinkSequence].size(); i+=2) {
             ofDrawCircle(averagePoses[currentDrinkSequence][i] * SCALE_X, averagePoses[currentDrinkSequence][i+1] * SCALE_Y, 20);
         }
         
-        poseImages[drinkSequence[currentDrinkSequence]].draw(0,0);
+        poseImages[drinkSequence[currentDrinkSequence]].draw(0,0, ofGetWidth(), ofGetHeight());
     }
 	feedBackFbo.end();
 
@@ -224,9 +198,11 @@ void ofApp::update() {
                 numSamples ++;
                 // foo: 21 41 61 81 101
                 learnedPoses.begin();
-                ofSetColor(255, 255, 255, 100);
-                ofNoFill();
+				ofFill();
+				//ofSetLineWidth(10);
+                ofSetColor(0, 0, 255);
                 u.draw();
+				ofNoFill();
                 learnedPoses.end();
  
                 
@@ -240,7 +216,7 @@ void ofApp::update() {
                     poseImages.push_back(img);
                     
                     std::transform(averagePoses[numPoses].begin(), averagePoses[numPoses].end(), averagePoses[numPoses].begin(),
-                                   std::bind1st(std::multiplies<double>(),1.0/double(numSamples)));
+                                   std::bind1st(std::multiplies<double>(),1.0/double(numSamples+1)));
                     
                     numSamples = 0;
                     numPoses++;
@@ -352,14 +328,14 @@ void ofApp::update() {
                 break;
         }
     }
-    else if (numHumans>1) {
+    else if (numHumansInView>1) {
 		feedBackFbo.begin();
 		font.drawString("Please, one at a time!", messageX, messageY);
 		feedBackFbo.end();
 	}
 	else if (numHumans == 0) {
 		feedBackFbo.begin();
-		font.drawString("Anoone there?", messageX, messageY);
+		font.drawString("Ano one there?", messageX, messageY);
 		feedBackFbo.end();
 	}
     else if (numHumans > 0 && numHumansInView == 0) {
@@ -370,15 +346,17 @@ void ofApp::update() {
 
 	userFbo.begin();
 	ofFill();
-	ofSetColor(255, 255, 255, 40);
+	ofSetColor(255, 255, 255, 15);
 	ofDrawRectangle(0,0,userFbo.getWidth(), userFbo.getHeight());
 	ofSetColor(255, 255, 255);
 	ofNoFill();
-	for (int i = 0; i <MIN(numHumans, theUsers.size()); i++)theUsers[i].draw();
+	for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
+		theUsers[i].draw();
+	}
 	userFbo.end();
 
-	box2d.update();
-	test.update();
+	// box2d.update();
+	//test.update();
 }
 void ofApp::reset() {
     classifier.clearTrainingInstances();

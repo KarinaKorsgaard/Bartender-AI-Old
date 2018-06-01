@@ -46,7 +46,7 @@ public:
     ofxOscReceiver r;
     vector<user> theUsers;
     ofxPanel gui;
-    ofParameter<int>left, right, top, bottom;
+    ofParameter<float>left, right, top, bottom;
     
 
     // optional: callback function for when training is done

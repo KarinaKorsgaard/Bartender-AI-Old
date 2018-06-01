@@ -7,8 +7,8 @@
 
 #ifndef user_h
 #define user_h
-#define SCALE_X 1920.f
-#define SCALE_Y 1080.f
+#define SCALE_X 800.f
+#define SCALE_Y 600.f
 #include "ofxBox2d.h"
 
 class user {
@@ -26,16 +26,11 @@ public:
     int pointsInView;
     bool isInView;
     
-    vector<vector<int>>connects = {
-        {10,9,9,8,8,2,2,1,1,5,5,11,11,12,12,13},
-        {4,3,3,2,2,1,1,5,5,6,6,7},
-        {16,14,14,0,0,15,15,17},
-        {0,1}, 
-		{8, 11}
-    };
+
+
+
 
     void setup(ofxBox2d* box2d ) {
-
 
         //anchor.setup(box2d.getWorld(), 20, ofGetHeight()/2, 4);
 		points.resize(18);
@@ -44,8 +39,16 @@ public:
             shared_ptr<ofxBox2dCircle> circle = shared_ptr<ofxBox2dCircle>(new ofxBox2dCircle);
             circle.get()->setPhysics(1.0, 0., 5.1);
             circle.get()->setup(box2d->getWorld(), ofGetWidth()/2, 100+(i*20), 8);
+			//circle.get()->alive = false;
             circles.push_back(circle);
         }
+		vector<vector<int>>connects = {
+			{ 10,9,9,8,8,2,2,1,1,5,5,11,11,12,12,13 },
+			{ 4,3,3,2,2,1,1,5,5,6,6,7 },
+			{ 16,14,14,0,0,15,15,17 },
+			{ 0,1 },
+			{ 8, 11 }
+		};
         
         // now connect each circle with a joint
         for(int i=0; i<connects.size(); i++) {
@@ -59,6 +62,7 @@ public:
 				else joint.get()->setLength(60);
 				// joint.get()->setFrequency(0);
                 joints.push_back(joint);
+				
             }
         }
     }
@@ -68,13 +72,13 @@ public:
             if(points[i].x>0 && points[i].y>0)
                 circles[i]->setPosition(points[i].x*ofGetWidth(), points[i].y*ofGetHeight());
         }
-        isInView = pointsInView < 3;
+        isInView = pointsInView < 4;
        // box2d.update();
        // circles[0]->setPosition(200, 200);
     }
 
     void addPoint(int i, float x, float y) {
-        points[i] = ofPoint((x/ SCALE_X), (y/ SCALE_Y));
+        points[i] = ofPoint((x), (y));
 		// cout << x << " " << y << endl;
     }
     void clearPoints(){ points.clear(); points.resize(18); }
@@ -92,13 +96,16 @@ public:
 
 
         for(int i=0; i<joints.size(); i++) {
+			joints[i]->draw();
 			vector<float> res = joints[i]->getData();
 			ofPushMatrix();
 			ofTranslate(res[0], res[1]);
 			ofRotate(res[2]);
 			ofDrawRectangle(-res[3] / 2.f, -5, res[3], 20);
 			ofPopMatrix();
+			
         }
+		
 		// ofPoint scale = ofPoint(SCALE_X, SCALE_Y);
 
 		// ofDrawCircle(circles[0]->getB2DPosition() * scale, 30);
