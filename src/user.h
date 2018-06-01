@@ -25,7 +25,7 @@ public:
     
     int pointsInView;
     bool isInView;
-    
+	bool dontDraw;
     
 
 
@@ -59,7 +59,7 @@ public:
                 
                 if(i==2)joint.get()->setLength(20);
 				else joint.get()->setLength(60);
-				// joint.get()->setFrequency(0);
+				joint.get()->setFrequency(0);
                 joints.push_back(joint);
 				
             }
@@ -67,17 +67,23 @@ public:
     }
     
     void update() {
+		int zeroPoints = 0;
         for(int i = 0; i<points.size();i++){
-            if(points[i].x>0 && points[i].y>0)
-                circles[i]->setPosition(points[i].x*ofGetWidth(), points[i].y*ofGetHeight());
+            if(points[i].x>0 && points[i].y>0) {
+				ofVec2f p1 = circles[i]->getPosition();
+				ofVec2f p2(ofGetWidth() - points[i].x*ofGetWidth(), points[i].y*ofGetHeight());
+                circles[i]->setPosition(p1*0.49 + p2*0.51);
+			}
+			else zeroPoints++;
         }
-        isInView = pointsInView < 4;
+		dontDraw = zeroPoints > 2;
+        isInView = pointsInView < 7;
        // box2d.update();
        // circles[0]->setPosition(200, 200);
     }
 
     void addPoint(int i, float x, float y) {
-        points[i] = ofPoint((x), (y));
+		points[i].set(x, y);
 		// cout << x << " " << y << endl;
     }
     void clearPoints(){ points.clear(); points.resize(18); }

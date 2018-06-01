@@ -44,7 +44,8 @@ public:
     void exit();
     
     void drawUserWithPngs(user* u);
-    std::map<string, ofImage> bodyPartImages;
+	vector<ofImage> bodyPartImages;
+	
     
     float getAngle(ofVec2f p1, ofVec2f p2){
         return float(atan2(p2.y - p1.y, p2.x - p1.x) * 180 / PI);
@@ -57,7 +58,7 @@ public:
     ofxOscReceiver r;
     vector<user> theUsers;
     ofxPanel gui;
-    ofParameter<float>left, right, top, bottom;
+    ofParameter<float>left, right, top, bottom, scale, bellyThreshold;
     
 
     // optional: callback function for when training is done

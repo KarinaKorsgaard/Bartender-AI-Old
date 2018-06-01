@@ -62,7 +62,9 @@ void ofApp::setup() {
     gui.add(right.set("right", 0, 0,1));
     gui.add(top.set("top", 0, 0, 1));
     gui.add(bottom.set("bottom", 0, 0, 1));
-    
+	gui.add(scale.set("scale images", 0, 0, 1));
+	gui.add(bellyThreshold.set("bellyThreshold", 0, 0, 1));
+
     gui.loadFromFile("settings.xml");
     
 
@@ -72,10 +74,12 @@ void ofApp::setup() {
     ofDirectory dir;
     dir.allowExt("png");
     dir.listDir("Bartender");
+	dir.sort();
+
     for (int i = 0; i<dir.size(); i++ ){
         ofImage img;
         img.load(dir.getPath(i));
-        bodyPartImages[dir.getName(i)] = img;
+        bodyPartImages.push_back(img);
         cout << dir.getName(i) << endl;
     }
 
@@ -108,9 +112,11 @@ void ofApp::update() {
     while (r.hasWaitingMessages()) {
         ofxOscMessage m;
         r.getNextMessage(m);
-		
+		numHumans = 0;
         // cout << m.getAddress() << endl;
-		if (m.getAddress() == "/nohumans")numHumans = 0;
+		if (m.getAddress() == "/nohumans") {
+			numHumans = 0;
+		}
 		else
 		{
 			int id = ofToInt(ofSplitString(m.getAddress(), "person").back());
@@ -130,7 +136,7 @@ void ofApp::update() {
 						// cout << x<< " "  << y << endl;
                         if(x > left && x < right+left && y > top && y < bottom+top){
                             theUsers[id].pointsInView --;
-							 // cout << "true" << endl;
+							// cout << "true" << endl;
                         }
                         
 						theUsers[id].addPoint(indx, x, y);
@@ -359,7 +365,7 @@ void ofApp::update() {
 	ofSetColor(255, 255, 255);
 	ofNoFill();
 	for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
-		theUsers[i].draw();
+		//theUsers[i].draw();
         drawUserWithPngs(&theUsers[i]);
 	}
 	userFbo.end();
@@ -371,8 +377,7 @@ void ofApp::reset() {
     classifier.clearTrainingInstances();
 }
 void ofApp::drawUserWithPngs(user *u){
-    
-    float scale = 0.5;
+    /*
     ofVec2f p1, p2, p3;
     ofImage img;
 
@@ -387,7 +392,7 @@ void ofApp::drawUserWithPngs(user *u){
         ofPushMatrix();
         ofTranslate(p3.x, p3.y);
         ofRotate(getAngle(p1, p2));
-        img.draw(-img.getWidth()/2, -img.getHeight()/2, img.getWidth(), img.getHeight());
+		img.draw(-(img.getWidth()*scale) / 2, -(img.getHeight()*scale) / 2, img.getWidth()*scale, img.getHeight()*scale);
         ofPopMatrix();
     }
     
@@ -399,9 +404,10 @@ void ofApp::drawUserWithPngs(user *u){
     ofPushMatrix();
     ofTranslate(p3.x, p3.y);
     ofRotate(getAngle(u->circles[1]->getPosition(), u->circles[14]->getPosition()));
-    float w = (p5-p2).length();
-    float h = (u->circles[1]->getPosition() - getMean(p1, p2)).length();
-    
+    float w = (u->circles[5]->getPosition() - u->circles[2]->getPosition()).length();
+    float h = (u->circles[1]->getPosition() - getMean(p4, p5)).length();
+	//cout << w << " " << h << endl;
+
     img = bodyPartImages["Torso.png"];
     img.draw(-w/2, -h/2, w, h);
     ofPopMatrix();
@@ -413,11 +419,52 @@ void ofApp::drawUserWithPngs(user *u){
     ofPushMatrix();
     ofTranslate(p1.x, p1.y);
     ofRotate(getAngle(p1, p2));
-    img.draw(-img.getWidth()/2, -img.getHeight()/2, img.getWidth(), img.getHeight());
+    img.draw(-(img.getWidth()*scale)/2, -(img.getHeight()*scale), img.getWidth()*scale, img.getHeight()*scale);
     ofPopMatrix();
     
-    
-}
+    */
+	vector<vector<int>> indx = { { 4,3,0 },{ 3,2,0 },{ 5,6,0 },{ 6,7,0 },{ 8,9,-90 },{ 9,10,-90 },{ 11,12,-90 },{ 12,13,-90 } };
+
+	for (int i = 0; i < indx.size(); i++) {
+		float rotation = getAngle(u->circles[indx[i][0]]->getPosition(), u->circles[indx[i][1]]->getPosition());
+		ofVec2f position = getMean(u->circles[indx[i][0]]->getPosition(), u->circles[indx[i][1]]->getPosition());
+		float w = bodyPartImages[i].getWidth();
+		float h = (u->circles[indx[i][1]]->getPosition() - u->circles[indx[i][0]]->getPosition()).length();
+		ofPushMatrix();
+		ofTranslate(position.x, position.y);
+		ofRotate(rotation - 90);
+		bodyPartImages[i].draw(-(w*scale) / 2, -(h)/2, w*scale, h);
+		ofPopMatrix();
+	}
+	ofVec2f p1 = u->circles[2]->getPosition();
+	ofVec2f p2 = u->circles[5]->getPosition();
+	ofVec2f p4 = u->circles[8]->getPosition();
+	ofVec2f p5 = u->circles[11]->getPosition();
+	ofVec2f p3 = (p1 + p2 + p4 + p5) / 4;
+	ofPushMatrix();
+	ofTranslate(p3.x, p3.y);
+	ofRotate(getAngle(u->circles[1]->getPosition(), u->circles[14]->getPosition())-90);
+	float w = (u->circles[5]->getPosition() - u->circles[2]->getPosition()).length() * 1.2;
+	float h = (u->circles[1]->getPosition() - getMean(p4, p5)).length() * 1.1;
+	int img = 8;
+	if (w / h < bellyThreshold)img = 1;
+	w = MAX(30, w);
+	//cout << w << " " << h << endl;
+
+	bodyPartImages[img].draw(-w / 2, -h / 2, w, h);
+	ofPopMatrix();
+
+	p1 = u->circles[0]->getPosition();
+	p2 = u->circles[1]->getPosition();
+
+	ofPushMatrix();
+	ofTranslate(getMean(p1, p2).x, getMean(p1, p2).y);
+	ofRotate(getAngle(p1, p2)-90);
+	bodyPartImages[9].draw(-(bodyPartImages[9].getWidth()*scale) / 2, -(bodyPartImages[9].getHeight()*scale)/2, bodyPartImages[9].getWidth()*scale, bodyPartImages[9].getHeight()*scale);
+	ofPopMatrix();
+};
+
+
 //--------------------------------------------------------------
 void ofApp::draw() {
     
