@@ -249,7 +249,7 @@ void ofApp::update() {
                 }
 				else {
 					feedBackFbo.begin();
-					font.drawString("Ahh.. Not really!", messageX, messageY);
+					font.drawString("That is pose "+ofToString(currentPose)+", not "+ofToString(drinkSequence[currentDrinkSequence]), messageX, messageY);
 					feedBackFbo.end();
 				}
                 break;
@@ -330,17 +330,17 @@ void ofApp::update() {
     }
     else if (numHumansInView>1) {
 		feedBackFbo.begin();
-		font.drawString("Please, one at a time!", messageX, messageY);
+		font.drawString("one at a time!", messageX, messageY);
 		feedBackFbo.end();
 	}
 	else if (numHumans == 0) {
 		feedBackFbo.begin();
-		font.drawString("Ano one there?", messageX, messageY);
+		font.drawString("Any one there?", messageX, messageY);
 		feedBackFbo.end();
 	}
     else if (numHumans > 0 && numHumansInView == 0) {
         feedBackFbo.begin();
-        font.drawString("One of you, step inside the square to try the pose machine!", messageX, messageY);
+        font.drawString("Step inside the square to try the pose machine!", messageX, messageY);
         feedBackFbo.end();
     }
 
@@ -355,7 +355,7 @@ void ofApp::update() {
 	}
 	userFbo.end();
 
-	// box2d.update();
+	box2d.update();
 	//test.update();
 }
 void ofApp::reset() {
