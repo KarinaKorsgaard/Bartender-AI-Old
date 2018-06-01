@@ -43,6 +43,17 @@ public:
     void reset();
     void exit();
     
+    void drawUserWithPngs(user* u);
+    std::map<string, ofImage> bodyPartImages;
+    
+    float getAngle(ofVec2f p1, ofVec2f p2){
+        return float(atan2(p2.y - p1.y, p2.x - p1.x) * 180 / PI);
+    }
+    ofVec2f getMean(ofVec2f p1, ofVec2f p2){
+        return (p1+p2)/2.f;
+    }
+
+    
     ofxOscReceiver r;
     vector<user> theUsers;
     ofxPanel gui;

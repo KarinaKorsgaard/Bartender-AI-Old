@@ -68,6 +68,16 @@ void ofApp::setup() {
 
     drinkSequence.clear();
     drinkSequence = {1, 2, 3};
+    
+    ofDirectory dir;
+    dir.allowExt("png");
+    dir.listDir("Bartender");
+    for (int i = 0; i<dir.size(); i++ ){
+        ofImage img;
+        img.load(dir.getPath(i));
+        bodyPartImages[dir.getName(i)] = img;
+        cout << dir.getName(i) << endl;
+    }
 
 }
 
@@ -345,13 +355,12 @@ void ofApp::update() {
     }
 
 	userFbo.begin();
-	ofFill();
-	ofSetColor(255, 255, 255, 15);
-	ofDrawRectangle(0,0,userFbo.getWidth(), userFbo.getHeight());
+    ofClear(0);
 	ofSetColor(255, 255, 255);
 	ofNoFill();
 	for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
 		theUsers[i].draw();
+        drawUserWithPngs(&theUsers[i]);
 	}
 	userFbo.end();
 
@@ -361,10 +370,58 @@ void ofApp::update() {
 void ofApp::reset() {
     classifier.clearTrainingInstances();
 }
+void ofApp::drawUserWithPngs(user *u){
+    
+    float scale = 0.5;
+    ofVec2f p1, p2, p3;
+    ofImage img;
+
+    vector<int>numParts = {4,3,3,2,5,6,6,7,8,9,9,10,11,12,12,13};
+    vector<string>names = {"Left-Arm-Outer.png", "Left-Arm-Inner.png", "Right-Arm-Inner.png", "Right-Arm-Outer.png", "Left-Leg-Upper.png", "Left-Leg-Lower.png", "Right-Leg-Upper.png", "Right-Leg-Lower.png"};
+    for(int i = 0; i< numParts.size(); i+=2){
+        p1 = u->circles[numParts[i]]->getPosition();
+        p2 = u->circles[numParts[i+1]]->getPosition();
+        p3 = getMean(p1, p2);
+        
+        img = bodyPartImages[names[i/2]];
+        ofPushMatrix();
+        ofTranslate(p3.x, p3.y);
+        ofRotate(getAngle(p1, p2));
+        img.draw(-img.getWidth()/2, -img.getHeight()/2, img.getWidth(), img.getHeight());
+        ofPopMatrix();
+    }
+    
+    p1 = u->circles[2]->getPosition();
+    p2 = u->circles[5]->getPosition();
+    ofVec2f p4 = u->circles[8]->getPosition();
+    ofVec2f p5 = u->circles[11]->getPosition();
+    p3 = (p1+p2+p4+p5)/4;
+    ofPushMatrix();
+    ofTranslate(p3.x, p3.y);
+    ofRotate(getAngle(u->circles[1]->getPosition(), u->circles[14]->getPosition()));
+    float w = (p5-p2).length();
+    float h = (u->circles[1]->getPosition() - getMean(p1, p2)).length();
+    
+    img = bodyPartImages["Torso.png"];
+    img.draw(-w/2, -h/2, w, h);
+    ofPopMatrix();
+             
+    p1 = u->circles[0]->getPosition();
+    p1 = u->circles[1]->getPosition();
+    img = bodyPartImages["Head.png"];
+    
+    ofPushMatrix();
+    ofTranslate(p1.x, p1.y);
+    ofRotate(getAngle(p1, p2));
+    img.draw(-img.getWidth()/2, -img.getHeight()/2, img.getWidth(), img.getHeight());
+    ofPopMatrix();
+    
+    
+}
 //--------------------------------------------------------------
 void ofApp::draw() {
     
-
+    ofBackgroundHex(0x22264C);
     ofSetColor(255);
 	userFbo.draw(0,0);
 	feedBackFbo.draw(0, 0);

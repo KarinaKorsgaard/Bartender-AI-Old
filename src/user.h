@@ -26,7 +26,7 @@ public:
     int pointsInView;
     bool isInView;
     
-
+    
 
 
 
@@ -43,11 +43,10 @@ public:
             circles.push_back(circle);
         }
 		vector<vector<int>>connects = {
-			{ 10,9,9,8,8,2,2,1,1,5,5,11,11,12,12,13 },
+			{ 10,9,9,8,8,11,11,12,12,13 },
+			{ 2,1,1,5,5,11,11,8,8,2 },
 			{ 4,3,3,2,2,1,1,5,5,6,6,7 },
-			{ 16,14,14,0,0,15,15,17 },
 			{ 0,1 },
-			{ 8, 11 }
 		};
         
         // now connect each circle with a joint
@@ -92,11 +91,8 @@ public:
     }
 
     void draw() {
-        
-
 
         for(int i=0; i<joints.size(); i++) {
-			joints[i]->draw();
 			vector<float> res = joints[i]->getData();
 			ofPushMatrix();
 			ofTranslate(res[0], res[1]);
@@ -105,11 +101,11 @@ public:
 			ofPopMatrix();
 			
         }
-		
-		// ofPoint scale = ofPoint(SCALE_X, SCALE_Y);
-
-		// ofDrawCircle(circles[0]->getB2DPosition() * scale, 30);
     }
+    vector<float> getData(int joint){
+        return joints[joint]->getData();
+    }
+    
     void exit(){
         for(int i=0; i<joints.size(); i++) joints[i]->destroy();
         for(int i=0; i<circles.size(); i++) circles[i]->destroy();
