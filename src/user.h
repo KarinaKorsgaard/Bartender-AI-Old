@@ -13,7 +13,7 @@
 
 class user {
 public:
-    vector<ofPoint>points;
+    vector<ofVec2f>points;
     
     //ofxBox2dCircle                            anchor;  // fixed anchor
     vector      <shared_ptr<ofxBox2dCircle> > circles; // default box2d circles

@@ -1,8 +1,6 @@
 
 
-#ifdef __APPLE__
-#include "ofxJson.h"
-#endif
+
 
 
 
@@ -10,11 +8,10 @@
 
 #include "ofMain.h"
 #include "ofxOsc.h"
-#include "ofxLearn.h"
 #include "chainEvent.h"
 #include "user.h"
 #include "ofxGui.h"
-
+#include "learner.h"
 #define MAX_USERS 3
 #define NUM_DRINKS 1
 
@@ -43,6 +40,7 @@ public:
     void reset();
     void exit();
     
+    int session = 0;
     void drawUserWithPngs(user* u);
 	vector<ofImage> bodyPartImages;
 	
@@ -54,29 +52,22 @@ public:
         return (p1+p2)/2.f;
     }
 
-    
+    GestureLearner classifier;
     ofxOscReceiver r;
     vector<user> theUsers;
     ofxPanel gui;
-    ofParameter<float>left, right, top, bottom, scale, bellyThreshold;
-    
+    ofParameter<float>left, right, top, bottom, scale, bellyThreshold, prababilityThreshold;
+    ofParameter<bool>clearSample, addSamples, train;
 
-    // optional: callback function for when training is done
-    void callbackTrainingDone() {
-        ofLog(OF_LOG_NOTICE, "Training done!!!");
-    }
-    ofxLearnSVMThreaded classifier;
-    
-    
-    
-    
-    vector<double> getSample(user u) {
-        vector<double>sample;
 
+     GRT::VectorFloat getSample(user u) {
+
+        GRT::VectorFloat sample;
+        int indx = 0;
         for (auto p : u.points) {
-            sample.push_back(p.x);
-            sample.push_back(p.y);
-
+            sample[indx] = p.x;
+            sample[indx+1] = p.y;
+            indx+=2;
         }
         return sample;
     }
@@ -103,4 +94,5 @@ public:
     
     vector<vector<double>>averagePoses;
     int numSamples;
+    
 };

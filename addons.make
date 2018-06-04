@@ -1,6 +1,4 @@
-ofxAutoReloadedShader
 ofxBox2d
+ofxGrt
 ofxGui
-ofxJSON
-ofxLearn
 ofxOsc
