@@ -6,11 +6,20 @@ void ofApp::setup() {
     r.setup(7000);
     
     test.listDevices();
-    test.setDeviceID(2);
+    test.setDeviceID(1);
     test.setup(SCALE_X, SCALE_Y);
     
 	ofBackground(0, 0, 0);
 	box2d.init();
+
+	for (int i = 0; i<25; i++) {
+		vector<double>newAverage;
+		newAverage.resize(18 * 2);
+		averagePoses.push_back(newAverage);
+
+		ofImage img;
+		if (img.load("outputs\\" + ofToString(i) + ".png"))poseImages.push_back(img);
+	}
 	//box2d.setGravity(0, 0.0);
 	//box2d.setFPS(20.0);
 	//box2d.setIterations(10, 2);
@@ -37,17 +46,17 @@ void ofApp::setup() {
     chainevent.addEvent(3., TRYAGAIN);
     
 
-    learnedPoses.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
+    learnedPoses.allocate(WIDTH, HEIGHT, GL_RGBA);
     learnedPoses.begin();
     ofClear(0);
     learnedPoses.end();
 
-	userFbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA32F_ARB);
+	userFbo.allocate(WIDTH, HEIGHT, GL_RGBA);
 	userFbo.begin();
 	ofClear(0);
 	userFbo.end();
 
-	feedBackFbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
+	feedBackFbo.allocate(WIDTH, HEIGHT, GL_RGBA);
 	feedBackFbo.begin();
 	ofClear(0);
 	feedBackFbo.end();
@@ -62,7 +71,9 @@ void ofApp::setup() {
 	gui.add(scale.set("scale images", 0, 0, 1));
 	gui.add(bellyThreshold.set("bellyThreshold", 0, 0, 1));
     gui.add(prababilityThreshold.set("prababilityThreshold", 0, 0, 1));
-
+	gui.add(addSamples.set("addsamples", false));
+	gui.add(clearSample.set("clearSample", false));
+	gui.add(train.set("train", false));
     gui.loadFromFile("settings.xml");
     
 
@@ -80,7 +91,7 @@ void ofApp::setup() {
         bodyPartImages.push_back(img);
         cout << dir.getName(i) << endl;
     }
-
+	chainevent.setTo(PLAYING);
 }
 
 
@@ -122,18 +133,18 @@ void ofApp::update() {
             
 			if (id<theUsers.size()) {
 
-				theUsers[id].pointsInView = 18;
+				theUsers[id].pointsInView = 0;
 				numHumans = MAX(id + 1, numHumans);
 				
 				
 				int indx = 0;
 				for (int i = 0; i < m.getNumArgs(); i += 3) {
 					if (m.getArgType(i) == 102) {
-                        float x = m.getArgAsFloat(i) / SCALE_X;
+                        float x = 1. - (m.getArgAsFloat(i) / SCALE_X);
                         float y = m.getArgAsFloat(i + 1) / SCALE_Y;
 						// cout << x<< " "  << y << endl;
                         if(x > left && x < right+left && y > top && y < bottom+top){
-                            theUsers[id].pointsInView --;
+                            theUsers[id].pointsInView++;
 							// cout << "true" << endl;
                         }
                         
@@ -163,12 +174,12 @@ void ofApp::update() {
 	ofClear(0);
     ofNoFill();
     ofSetColor(200, 0, 0);
-    ofDrawRectangle(left* ofGetWidth(), top*ofGetHeight(), (right)*ofGetWidth(), (bottom)*ofGetHeight());
-
+    ofDrawRectangle(left* WIDTH, top*HEIGHT, (right)*WIDTH, (bottom)*HEIGHT);
+	if(drinkSequence[currentDrinkSequence]<poseImages.size())poseImages[drinkSequence[currentDrinkSequence]].draw(0, 0, WIDTH, HEIGHT);
 	feedBackFbo.end();
 
 	int messageX = 50;
-	int messageY = ofGetHeight() - 70;
+	int messageY = 70;
 
 	if (numHumansInView == 1) {
         chainevent.update();
@@ -186,14 +197,9 @@ void ofApp::update() {
 				feedBackFbo.end();
 
                 if (chainevent.getDuration()-chainevent.getTime() < 0.1) {
-//                    learnedPoses.begin();
-//                    ofClear(0);
-//                    learnedPoses.end();
-                    
-                    vector<double>newAverage;
-                    newAverage = sample;
-                    averagePoses.push_back(newAverage);
-                    
+					learnedPoses.begin();
+					ofClear(0);
+					learnedPoses.end();
                     chainevent.next();
                 }
 
@@ -209,35 +215,28 @@ void ofApp::update() {
                 
                 if (chainevent.getTime()>chainevent.getDuration() - 0.1) {
                     
-                    learnedPoses.begin();
-                    ofFill();
-                    ofSetColor(0, 0, 255);
-
-                    for(int i = 0; i< u.points.size(); i++)
-                        u.points[i] = ofVec2f(averagePoses[numPoses][i*2],averagePoses[numPoses][i*2+1]);
-                    
-                    u.update();
-                    drawUserWithPngs(&u);
-                    learnedPoses.end();
-                    
-                    ofPixels pix;
-                    learnedPoses.readToPixels(pix);
-                    ofSaveImage(pix, "outputs\\" + ofToString(numPoses)+".png");
-                    
-                    ofImage img;
-                    img.load("outputs\\" + ofToString(numPoses)+".png");
-                    poseImages.push_back(img);
-                    
                     std::transform(averagePoses[numPoses].begin(), averagePoses[numPoses].end(), averagePoses[numPoses].begin(),
                                    std::bind1st(std::multiplies<double>(),1.0/double(numSamples+1)));
                     
-                    numSamples = 0;
+					learnedPoses.begin();
+					ofFill();
+					ofSetColor(0, 0, 255);
+					u.update();
+					drawUserWithPngs(u.circlePoints);
+					learnedPoses.end();
 
-                    if (numPoses < 3)chainevent.beginEvents();
-                    else {
-                        //classifier.beginTraining();
-                        chainevent.next();
-                    }
+					ofPixels pix;
+					learnedPoses.readToPixels(pix);
+					ofSaveImage(pix, "outputs\\" + ofToString(numPoses) + ".png");
+					ofImage img;
+					img.load("outputs\\" + ofToString(numPoses) + ".png");
+					if (numPoses>poseImages.size())
+						poseImages.push_back(img);
+					else poseImages[numPoses] = img;
+
+                    numSamples = 0;
+					chainevent.next();
+                    
                 }
                 break;
             }
@@ -245,21 +244,19 @@ void ofApp::update() {
                 
             case TRAINING: {
                 //statements
-				feedBackFbo.begin();
-				font.drawString("Just a second.. Im learning", messageX, messageY);
-				feedBackFbo.end();
-                if (classifier.isTrained())chainevent.next();
+				classifier.train();
+				chainevent.next();
                 break;
             }
             case PLAYING: {
-                
+				currentDrinkSequence = 0;
                 //statements
-                classifier.predict(sample);
+                classifier.updateSample(sample);
                 int currentPose = classifier.label;
                 if (currentPose == drinkSequence[currentDrinkSequence] && classifier.probability > prababilityThreshold) {
                     currentDrinkSequence ++;
                     test.update();
-                    ofSaveImage(test.getPixels(), "images/session_"+ofToString(session)+"1.png");
+                    ofSaveImage(test.getPixels(), "images\\session_"+ofToString(session)+"1.png");
                     chainevent.next();
                     
                 }
@@ -279,11 +276,11 @@ void ofApp::update() {
                 ofDrawRectangle(0, ofGetHeight() - 50, chainEventTime * ofGetWidth(), 50);
 				feedBackFbo.end();
 
-                classifier.predict(sample);
+                classifier.updateSample(sample);
                 int currentPose = classifier.label;
                 if (currentPose == drinkSequence[currentDrinkSequence] && classifier.probability > prababilityThreshold) {
                     test.update();
-                    ofSaveImage(test.getPixels(), "images/session_"+ofToString(session)+"2.png");
+                    ofSaveImage(test.getPixels(), "images\\session_"+ofToString(session)+"2.png");
                     currentDrinkSequence ++;
                     chainevent.next();
                     
@@ -303,12 +300,12 @@ void ofApp::update() {
                 ofDrawRectangle(0, ofGetHeight() - 50, chainEventTime * ofGetWidth(), 50);
                 feedBackFbo.end();
                 
-                classifier.predict(sample);
+                classifier.updateSample(sample);
                 int currentPose = classifier.label;
                 if (currentPose == drinkSequence[currentDrinkSequence] && classifier.probability > prababilityThreshold) {
                     session++;
                     test.update();
-                    ofSaveImage(test.getPixels(), "images/session_"+ofToString(session)+"3.png");
+                    ofSaveImage(test.getPixels(), "images\\session_"+ofToString(session)+"3.png");
                     chainevent.next();
                 }
                 if (chainevent.getDuration() - chainevent.getTime() < 0.1){
@@ -377,7 +374,7 @@ void ofApp::update() {
 	ofNoFill();
 	for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
 		//theUsers[i].draw();
-        drawUserWithPngs(&theUsers[i]);
+        drawUserWithPngs(theUsers[i].circlePoints);
 	}
 	userFbo.end();
 
@@ -391,38 +388,23 @@ void ofApp::update() {
         classifier.clearSample(numPoses);
     }
     if(train){
-        classifier.train();
+		chainevent.setTo(TRAINING);
         train = false;
     }
 }
 void ofApp::reset() {
     //classifier.clearTrainingInstances();
 }
-void ofApp::drawUserWithPngs(user *u){
-	vector<vector<int>> indx = { { 4,3,0 },{ 3,2,0 },{ 5,6,0 },{ 6,7,0 },{ 8,9,-90 },{ 9,10,-90 },{ 11,12,-90 },{ 12,13,-90 } };
+void ofApp::drawUserWithPngs(vector<ofVec2f> p){
 
-	for (int i = 0; i < indx.size(); i++) {
-		float rotation = getAngle(u->circles[indx[i][0]]->getPosition(), u->circles[indx[i][1]]->getPosition());
-		ofVec2f position = getMean(u->circles[indx[i][0]]->getPosition(), u->circles[indx[i][1]]->getPosition());
-		float w = bodyPartImages[i].getWidth();
-		float h = (u->circles[indx[i][1]]->getPosition() - u->circles[indx[i][0]]->getPosition()).length();
-		ofPushMatrix();
-		ofTranslate(position.x, position.y);
-		ofRotate(rotation - 90);
-		bodyPartImages[i].draw(-(w*scale) / 2, -(h)/2, w*scale, h);
-		ofPopMatrix();
-	}
-	ofVec2f p1 = u->circles[2]->getPosition();
-	ofVec2f p2 = u->circles[5]->getPosition();
-	ofVec2f p4 = u->circles[8]->getPosition();
-	ofVec2f p5 = u->circles[11]->getPosition();
-	ofVec2f p3 = (p1 + p2 + p4 + p5) / 4;
+
+	ofVec2f mean = (p[2] + p[5] + p[8] + p[11]) / 4;
 	ofPushMatrix();
-	ofTranslate(p3.x, p3.y);
-	ofRotate(getAngle(u->circles[1]->getPosition(), u->circles[14]->getPosition())-90);
-	float w = (u->circles[5]->getPosition() - u->circles[2]->getPosition()).length() * 1.2;
-	float h = (u->circles[1]->getPosition() - getMean(p4, p5)).length() * 1.1;
-	int img = 8;
+	ofTranslate(mean.x, mean.y);
+	ofRotate(getAngle(p[1], p[14]) - 90);
+	float w = (p[5] - p[2]).length() * 1.2;
+	float h = (p[1] - getMean(p[8], p[11])).length() * 1.1;
+	int img = 13;
 	if (w / h < bellyThreshold)img = 1;
 	w = MAX(30, w);
 	//cout << w << " " << h << endl;
@@ -430,13 +412,33 @@ void ofApp::drawUserWithPngs(user *u){
 	bodyPartImages[img].draw(-w / 2, -h / 2, w, h);
 	ofPopMatrix();
 
-	p1 = u->circles[0]->getPosition();
-	p2 = u->circles[1]->getPosition();
+	vector<vector<int>> indx = { { 4,3,11 },{ 3,2,0 },{ 5,6,0 },{ 7,6,12 },{ 8,9,0 },{ 10,9,9 },{ 11,12,0 },{ 13,12,10 } };
+
+	for (int i = 0; i < indx.size(); i++) {
+		float rotation = getAngle(p[indx[i][0]], p[indx[i][1]]);
+		ofVec2f position = getMean(p[indx[i][0]], p[indx[i][1]]);
+		float w = bodyPartImages[i].getWidth();
+		float h = (p[indx[i][1]] - p[indx[i][0]]).length();
+		ofPushMatrix();
+		ofTranslate(position.x, position.y);
+		ofRotate(rotation - 90);
+		bodyPartImages[i].draw(-(w*scale) / 2, -(h)/2, w*scale, h);
+		ofPopMatrix();
+
+		if(indx[i][2]>0) {
+			h = bodyPartImages[indx[i][2]].getHeight();
+			ofPushMatrix();
+			ofTranslate(p[indx[i][0]].x, p[indx[i][0]].y);
+			ofRotate(rotation - 90);
+			bodyPartImages[indx[i][2]].draw(-(w*scale) / 2, -(h*scale) / 2, w*scale, h*scale);
+			ofPopMatrix();
+		}
+	}
 
 	ofPushMatrix();
-	ofTranslate(getMean(p1, p2).x, getMean(p1, p2).y);
-	ofRotate(getAngle(p1, p2)-90);
-	bodyPartImages[9].draw(-(bodyPartImages[9].getWidth()*scale) / 2, -(bodyPartImages[9].getHeight()*scale)/2, bodyPartImages[9].getWidth()*scale, bodyPartImages[9].getHeight()*scale);
+	ofTranslate(getMean(p[0], p[1]).x, getMean(p[0], p[1]).y);
+	ofRotate(getAngle(p[0], p[1])-90);
+	bodyPartImages[8].draw(-(bodyPartImages[8].getWidth()*scale) / 2, -(bodyPartImages[8].getHeight()*scale)/2, bodyPartImages[8].getWidth()*scale, bodyPartImages[8].getHeight()*scale);
 	ofPopMatrix();
 
 };
@@ -453,7 +455,7 @@ void ofApp::draw() {
 	//learnedPoses.draw(0, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
 	//test.draw(learnedPoses.getWidth() / 4, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
     
-    if(chainevent.getName()==LEARNING || chainevent.getName()==BEGIN_LEARNING){
+    if(debug){
         classifier.drawAllLabels();
         ofNoFill();
         ofSetLineWidth(5);
@@ -468,6 +470,8 @@ void ofApp::draw() {
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
     if (key == 'l')chainevent.beginEvents();
+	if (key == 'd')debug = !debug;
+	if (key == 's')classifier.save();
 }
 
 //--------------------------------------------------------------

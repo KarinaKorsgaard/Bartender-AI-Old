@@ -11,31 +11,50 @@
 
 class GestureLearner{
 public:
-    void setup(){
-        trainingData.setNumDimensions( 18*2 );
-        
-        ANBC naiveBayes;
-        bool enableNullRejection = false;
-        naiveBayes.enableNullRejection( enableNullRejection );
-        naiveBayes.setNullRejectionCoeff( 3 );
-        pipeline << naiveBayes;
-    }
-    void train(){pipeline.train( trainingData );}
-    
-    void addSample(GRT::VectorFloat sample, int label){
-        trainingData.addSample( UINT(label), sample );
-    }
-    void save(){trainingData.save( ofToDataPath("TrainingData.grt") );}
-    
-    bool isTrained(){
-        return pipeline.getTrained();
-    }
-    void predict(GRT::VectorFloat sample){
-        if( pipeline.getTrained() ){
-            pipeline.predict( sample );
-            probability = pipeline.getMaximumLikelihood();
-            label = pipeline.getPredictedClassLabel();
-        }
+	void setup() {
+		trainingData.setNumDimensions(18 * 2);
+
+		ANBC naiveBayes;
+		bool enableNullRejection = false;
+		naiveBayes.enableNullRejection(enableNullRejection);
+		naiveBayes.setNullRejectionCoeff(3);
+		pipeline << naiveBayes;
+
+		load();
+		train();
+
+
+	}
+	void train() {
+		if (trainingData.getNumClasses() > 2)
+			pipeline.train(trainingData);
+	}
+
+	void addSample(GRT::VectorFloat sample, int label) {
+		trainingData.addSample(UINT(label), sample);
+	}
+	void save() { trainingData.save(ofToDataPath("TrainingData.grt")); }
+
+	bool isTrained() {
+		return pipeline.getTrained();
+	}
+
+
+	bool doPrediction;
+
+	void updateSample(GRT::VectorFloat s) {
+
+		if (pipeline.getTrained() && doPrediction) {
+			pipeline.predict(s);
+			
+		}
+		doPrediction = !doPrediction;
+
+		probability = pipeline.getMaximumLikelihood();
+		label = pipeline.getPredictedClassLabel();
+		cout << label << endl;
+		cout << probability << endl;
+
     }
 
     void drawAllLabels(){

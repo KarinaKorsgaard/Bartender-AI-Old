@@ -7,14 +7,17 @@
 
 #ifndef user_h
 #define user_h
-#define SCALE_X 800.f
-#define SCALE_Y 600.f
+#define SCALE_X 720.f
+#define SCALE_Y 1290.f
+#define WIDTH 1080
+#define HEIGHT 1920
+
 #include "ofxBox2d.h"
 
 class user {
 public:
     vector<ofVec2f>points;
-    
+	vector<ofVec2f>circlePoints;
     //ofxBox2dCircle                            anchor;  // fixed anchor
     vector      <shared_ptr<ofxBox2dCircle> > circles; // default box2d circles
     vector      <shared_ptr<ofxBox2dJoint> >  joints;  // joints
@@ -34,6 +37,8 @@ public:
 
         //anchor.setup(box2d.getWorld(), 20, ofGetHeight()/2, 4);
 		points.resize(18);
+		circlePoints.resize(18);
+		pointsInView = 0;
         // first we add just a few circles
         for(int i=0; i<18; i++) {
             shared_ptr<ofxBox2dCircle> circle = shared_ptr<ofxBox2dCircle>(new ofxBox2dCircle);
@@ -71,20 +76,22 @@ public:
         for(int i = 0; i<points.size();i++){
             if(points[i].x>0 && points[i].y>0) {
 				ofVec2f p1 = circles[i]->getPosition();
-				ofVec2f p2(ofGetWidth() - points[i].x*ofGetWidth(), points[i].y*ofGetHeight());
+				ofVec2f p2(points[i].x*WIDTH, points[i].y*HEIGHT);
                 circles[i]->setPosition(p1*0.49 + p2*0.51);
 			}
 			else zeroPoints++;
+			circlePoints[i] = circles[i]->getPosition();
+			
         }
 		dontDraw = zeroPoints > 2;
-        isInView = pointsInView < 7;
+        isInView = pointsInView > 4;
        // box2d.update();
        // circles[0]->setPosition(200, 200);
     }
 
     void addPoint(int i, float x, float y) {
 		points[i].set(x, y);
-		// cout << x << " " << y << endl;
+		 //cout << x << " " << y << endl;
     }
     void clearPoints(){ points.clear(); points.resize(18); }
     void print() {

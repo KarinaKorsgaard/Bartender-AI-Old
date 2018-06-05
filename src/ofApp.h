@@ -41,7 +41,7 @@ public:
     void exit();
     
     int session = 0;
-    void drawUserWithPngs(user* u);
+    void drawUserWithPngs(vector<ofVec2f> p);
 	vector<ofImage> bodyPartImages;
 	
     
@@ -62,7 +62,7 @@ public:
 
      GRT::VectorFloat getSample(user u) {
 
-        GRT::VectorFloat sample;
+        GRT::VectorFloat sample(18*2);
         int indx = 0;
         for (auto p : u.points) {
             sample[indx] = p.x;
@@ -73,7 +73,7 @@ public:
     }
 
     ChainEvent chainevent;
-    
+	bool debug = false;
     vector<int> drinkSequence;
     int currentDrinkSequence = 0;
     int numPoses = 0;
