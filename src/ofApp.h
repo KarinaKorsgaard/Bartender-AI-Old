@@ -79,7 +79,7 @@ public:
         }
         return sample;
     }
-
+	 bool drawUserOrbartender;
     ChainEvent chainevent;
 	bool debug = false;
     vector<int> drinkSequence;
@@ -105,9 +105,8 @@ public:
     
     ofShader yellowShader;
     
-    void drawCentered(ofTrueTypeFont *font, string s,int x,int y){
-        font->drawString(s, -(font->getStringBoundingBox(s,0,0).width / 2) + x, y);
-    }
+	void drawCenteredSmall(string str, int x, int y);
+	void drawCenteredLarge(string str, int x, int y);
     // Serial
     ofSerial    serial;
     bool        bSendSerialMessage;            // a flag for sending serial

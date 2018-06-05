@@ -15,11 +15,14 @@ public:
 	void setup() {
 		trainingData.setNumDimensions(18 * 2);
 
-		setClassifier( NAIVE_BAYES );
-        
+		//setClassifier( RANDOM_FOREST_100 );
+		setClassifier(NAIVE_BAYES);
 		load();
 		train();
 
+	}
+	int getNumCLasses() {
+		return trainingData.getNumClasses();
 	}
 	void train() {
 		if (trainingData.getNumClasses() > 2)
@@ -48,8 +51,8 @@ public:
 
 		probability = pipeline.getMaximumLikelihood();
 		label = pipeline.getPredictedClassLabel();
-		cout << label << endl;
-		cout << probability << endl;
+		//cout << label << endl;
+		//cout << probability << endl;
 
     }
 
@@ -199,7 +202,7 @@ public:
 private:
     ClassificationData trainingData;              //This will store our training data
     GestureRecognitionPipeline pipeline;
-    enum ClassifierType{ ADABOOST=0, DECISION_TREE, KKN, GAUSSIAN_MIXTURE_MODEL, NAIVE_BAYES, MINDIST, RANDOM_FOREST_10, RANDOM_FOREST_100, RANDOM_FOREST_200, SOFTMAX, SVM_LINEAR, SVM_RBF, NUM_CLASSIFIERS };
+    enum ClassifierType{ ADABOOST=0, DECISION_TREE, KKN, GAUSSIAN_MIXTURE_MODEL, NAIVE_BAYES, RANDOM_FOREST_100, RANDOM_FOREST_10, MINDIST, RANDOM_FOREST_200, SOFTMAX, SVM_LINEAR, SVM_RBF, NUM_CLASSIFIERS };
     int classifierType;
     
     string classifierTypeToString( const int type ){

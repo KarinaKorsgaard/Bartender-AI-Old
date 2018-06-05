@@ -74,7 +74,7 @@ public:
         for (int i = 0; i<eventName.size(); i++) {
             if (eventName[i] == state) {
                 eventNumber = i;
-                
+				done = false;
             }
         }
     }

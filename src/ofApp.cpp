@@ -46,14 +46,15 @@ void ofApp::setup() {
     chainevent.addEvent(3., BEGIN_LEARNING);
     chainevent.addEvent(3., LEARNING);
     chainevent.addEvent(20., TRAINING, true);
-    chainevent.addEvent(2., PLAYING);
-    chainevent.addEvent(3., POSE1);
+    chainevent.addEvent(5., PLAYING);
+    chainevent.addEvent(3., POSE1, true);
     chainevent.addEvent(3., POSE2);
     chainevent.addEvent(3., POSE3);
     chainevent.addEvent(5., POUR);
     chainevent.addEvent(3., RESET);
     chainevent.addEvent(3., TRYAGAIN);
-    
+
+	chainevent.setTo(PLAYING);
 
     learnedPoses.allocate(WIDTH, HEIGHT, GL_RGBA);
     learnedPoses.begin();
@@ -69,15 +70,15 @@ void ofApp::setup() {
 	feedBackFbo.begin();
 	ofClear(0);
 	feedBackFbo.end();
-
-	font_small.load("Apercu_Regular.otf", 18);
-    font_large.load("Apercu_Bold.otf", 22);
+	
+	font_small.load("Apercu-Bold.ttf", 40);
+	font_large.load("Apercu-Medium.ttf", 66);
     
     gui.setup();
-    gui.add(left.set("left", 0, 0, 1));
-    gui.add(right.set("right", 0, 0,1));
-    gui.add(top.set("top", 0, 0, 1));
-    gui.add(bottom.set("bottom", 0, 0, 1));
+   // gui.add(left.set("left", 0, 0, 1));
+   // gui.add(right.set("right", 0, 0,1));
+    gui.add(top.set("top", 0, 0, 1000));
+   // gui.add(bottom.set("bottom", 0, 0, 1));
     gui.add(yellow_box.set("yellow_box", 0, 0, 500));
     gui.add(red_box.set("yellow_red", 0, 0, 800));
 	gui.add(bellyThreshold.set("bellyThreshold", 0, 0, 1));
@@ -98,7 +99,7 @@ void ofApp::setup() {
     for(int i = 0; i<9; i++){
         ofParameter<ofVec2f> p;
         pos_parts.push_back(p);
-        bodyGroup.add(pos_parts.back().set("part_"+ofToString(i), ofVec2f(0), ofVec2f(-10), ofVec2f(10)));
+        bodyGroup.add(pos_parts.back().set("part_"+ofToString(i), ofVec2f(0,0), ofVec2f(-10,-10), ofVec2f(10,10)));
         
         ofParameter<float> s;
         s_parts.push_back(s);
@@ -164,6 +165,36 @@ void ofApp::update() {
         ofxOscMessage m;
         r.getNextMessage(m);
 		numHumans = 0;
+		///cout << "something" << endl;
+		/* bodies / 72057594037928883 / hands / Left
+			/ bodies / 72057594037928883 / hands / Right
+			/ bodies / 72057594037928883 / joints / SpineBase
+			/ bodies / 72057594037928883 / joints / SpineMid
+			/ bodies / 72057594037928883 / joints / Neck
+			/ bodies / 72057594037928883 / joints / Head
+			/ bodies / 72057594037928883 / joints / ShoulderLeft
+			/ bodies / 72057594037928883 / joints / ElbowLeft
+			/ bodies / 72057594037928883 / joints / WristLeft
+			/ bodies / 72057594037928883 / joints / HandLeft
+			/ bodies / 72057594037928883 / joints / ShoulderRight
+			/ bodies / 72057594037928883 / joints / ElbowRight
+			/ bodies / 72057594037928883 / joints / WristRight
+			/ bodies / 72057594037928883 / joints / HandRight
+			/ bodies / 72057594037928883 / joints / HipLeft
+			/ bodies / 72057594037928883 / joints / KneeLeft
+			/ bodies / 72057594037928883 / joints / AnkleLeft
+			/ bodies / 72057594037928883 / joints / FootLeft
+			/ bodies / 72057594037928883 / joints / HipRight
+			/ bodies / 72057594037928883 / joints / KneeRight
+			/ bodies / 72057594037928883 / joints / AnkleRight
+			/ bodies / 72057594037928883 / joints / FootRight
+			/ bodies / 72057594037928883 / joints / SpineShoulder
+			/ bodies / 72057594037928883 / joints / HandTipLeft
+			/ bodies / 72057594037928883 / joints / ThumbLeft
+			/ bodies / 72057594037928883 / joints / HandTipRight
+			/ bodies / 72057594037928883 / joints / ThumbRight
+			*/
+		//cout << m.getAddress() << endl;
         // cout << m.getAddress() << endl;
 		if (m.getAddress() == "/nohumans") {
 			numHumans = 0;
@@ -185,10 +216,10 @@ void ofApp::update() {
                         float x = 1. - (m.getArgAsFloat(i) / SCALE_X);
                         float y = m.getArgAsFloat(i + 1) / SCALE_Y;
 						// cout << x<< " "  << y << endl;
-                        if(x > left && x < right+left && y > top && y < bottom+top){
-                            theUsers[id].pointsInView++;
+                       // if(x > left && x < right+left && y > top && y < bottom+top){
+                       //     theUsers[id].pointsInView++;
 							// cout << "true" << endl;
-                        }
+                       // }
                         
 						theUsers[id].addPoint(indx, x, y);
 						indx++;
@@ -213,25 +244,17 @@ void ofApp::update() {
     
     
 	feedBackFbo.begin();
-    yellowShader.begin();
-	ofClear(0);
     ofSetColor(255);
     float aspect = logo.getHeight()/logo.getWidth();
     logo.draw(WIDTH/2 -(817/2) ,200, 817, aspect * 817);
-    yellowShader.end();
     aspect = backgound.getHeight()/backgound.getWidth();
     backgound.draw(0, HEIGHT - aspect*WIDTH , WIDTH, aspect*WIDTH);
-    
-    ofNoFill();
-    ofSetColor(200, 0, 0);
-    ofDrawRectangle(left* WIDTH, top*HEIGHT, (right)*WIDTH, (bottom)*HEIGHT);
-	if(drinkSequence[currentDrinkSequence]<poseImages.size())poseImages[drinkSequence[currentDrinkSequence]].draw(0, 0, WIDTH, HEIGHT);
 	feedBackFbo.end();
 
 	int messageX = WIDTH/2;
-	int messageY = yellow_box + 50;
+	int messageY = yellow_box + 150;
     int messageRedX = WIDTH/2;
-    int messageRedY = red_box + 50;
+    int messageRedY = red_box + 100;
     
 	if (numHumansInView == 1) {
         chainevent.update();
@@ -241,12 +264,6 @@ void ofApp::update() {
         
         switch (chainevent.getName()) {
             case BEGIN_LEARNING: {
-                
-				feedBackFbo.begin();
-                float chainEventTime = (chainevent.getDuration()-chainevent.getTime());
-				drawCentered(&font_small,"Get in position in "+ ofToString(chainEventTime,0)+" seconds!", messageX, messageY);
-				ofDrawRectangle(0, ofGetHeight()-50, chainEventTime/chainevent.getDuration() * ofGetWidth(), 50);
-				feedBackFbo.end();
 
                 if (chainevent.getDuration()-chainevent.getTime() < 0.1) {
                     chainevent.next();
@@ -269,19 +286,36 @@ void ofApp::update() {
                     
 					learnedPoses.begin();
                     ofClear(0);
-                    yellowShader.begin();
 					ofFill();
-					ofSetColor(0);
+					ofSetColor(254, 185, 24);
 					drawUserWithPngs(u.circlePoints, 0);
-                    yellowShader.end();
 					learnedPoses.end();
 
 					ofPixels pix;
 					learnedPoses.readToPixels(pix);
 					ofSaveImage(pix, "outputs\\" + ofToString(numPoses) + ".png");
+
+					ofDisableArbTex();
 					ofImage img;
 					img.load("outputs\\" + ofToString(numPoses) + ".png");
-					if (numPoses>poseImages.size())
+					ofEnableArbTex();
+
+					
+				
+					yellowShader.begin();
+					learnedPoses.begin();
+					ofClear(0);
+					yellowShader.setUniformTexture("tex0", img.getTexture(), 1);
+					ofSetColor(255);
+					learnedPoses.draw(0, 0, WIDTH, HEIGHT);
+					learnedPoses.end();
+					yellowShader.end();
+					
+
+					learnedPoses.readToPixels(pix);
+					ofSaveImage(pix, "outputs\\" + ofToString(numPoses) + ".png");
+					img.load("outputs\\" + ofToString(numPoses) + ".png");
+					if (numPoses >= poseImages.size())
 						poseImages.push_back(img);
 					else poseImages[numPoses] = img;
 
@@ -302,9 +336,9 @@ void ofApp::update() {
             }case PLAYING: {
                 feedBackFbo.begin();
                 speech.draw(WIDTH/2 - 763/2, yellow_box, 763, 389);
-                drawCentered(&font_large,"¡Preparar!", messageX, messageY);
-                drawCentered(&font_large,"Hit all three swag poses to",messageX, messageY + 30);
-                drawCentered(&font_small,"open the drink valve", messageX, messageY + 30 + 20);
+                drawCenteredLarge("¡Preparar!", messageX, messageY);
+                drawCenteredSmall("Hit all three swag poses to",messageX, messageY + 60);
+                drawCenteredSmall("open the drink valve", messageX, messageY + 60 + 40);
                 feedBackFbo.end();
                 break;
             }
@@ -312,10 +346,12 @@ void ofApp::update() {
 				currentDrinkSequence = 0;
                 classifier.updateSample(sample);
                 int currentPose = classifier.label;
+
                 feedBackFbo.begin();
+				ofSetColor(255);
                 speech.draw(WIDTH/2 - 763/2, yellow_box, 763, 389);
-                drawCentered(&font_large,"¡Plantear Uno!", messageX, messageY);
-                drawCentered(&font_large,"Flamingo Flamingo",messageX, messageY + 30);
+                drawCenteredLarge("¡Plantear Uno!", messageX, messageY);
+                drawCenteredSmall("Flamingo, Flamingo",messageX, messageY + 60);
                 feedBackFbo.end();
                 
                 if (currentPose == drinkSequence[currentDrinkSequence] && classifier.probability > prababilityThreshold)
@@ -325,21 +361,17 @@ void ofApp::update() {
                     ofSaveImage(test.getPixels(), "images\\session_"+ofToString(session)+"1.png");
                     chainevent.next();
                 }
-				else {
-					feedBackFbo.begin();
-                    speech_red.draw(messageRedX - 567/2, red_box, 567, 132);
-					font_large.drawString("¡Incorrecto!", messageRedX, messageRedY);
-					feedBackFbo.end();
-				}
-                break;
+				
+				break;
             }
                 
                 
             case POSE2: {
 				feedBackFbo.begin();
+				ofSetColor(255);
                 speech.draw(WIDTH/2 - 763/2, yellow_box, 763, 389);
-				drawCentered(&font_large,"¡Correcto!", messageX, messageY);
-                drawCentered(&font_small,"Do the next pose!", messageX, messageY + 30);
+				drawCenteredLarge("¡Correcto!", messageX, messageY);
+                drawCenteredSmall("Do the next pose", messageX, messageY + 60);
                 float chainEventTime = (chainevent.getDuration()-chainevent.getTime())/chainevent.getDuration();
                 ofDrawRectangle(0, ofGetHeight() - 50, chainEventTime * ofGetWidth(), 50);
 				feedBackFbo.end();
@@ -350,9 +382,7 @@ void ofApp::update() {
                     test.update();
                     ofSaveImage(test.getPixels(), "images\\session_"+ofToString(session)+"2.png");
                     currentDrinkSequence ++;
-                    chainevent.next();
-                    
-                    
+                    chainevent.next();    
                 }
                 if (chainevent.getDuration() - chainevent.getTime() < 0.1){
                     chainevent.setTo(TRYAGAIN);
@@ -363,9 +393,10 @@ void ofApp::update() {
             }
             case POSE3: {
                 feedBackFbo.begin();
+				ofSetColor(255);
                 speech.draw(WIDTH/2 - 763/2, yellow_box, 763, 389);
-                drawCentered(&font_large,"¡2 out of 3!", messageX, messageY);
-                drawCentered(&font_small,"The last one!", messageX, messageY + 30);
+                drawCenteredLarge("2 out of 3...", messageX, messageY);
+                drawCenteredSmall("The last one", messageX, messageY + 60);
                 float chainEventTime = (chainevent.getDuration()-chainevent.getTime())/chainevent.getDuration();
                 ofDrawRectangle(0, ofGetHeight() - 50, chainEventTime * ofGetWidth(), 50);
                 feedBackFbo.end();
@@ -387,9 +418,10 @@ void ofApp::update() {
             }
             case POUR: {
 				feedBackFbo.begin();
+				ofSetColor(255);
                 speech.draw(WIDTH/2 - 763/2, yellow_box, 763, 389);
-                drawCentered(&font_large,"¡Hurra!", messageX, messageY);
-                drawCentered(&font_small,"Your drink is being poured!", messageX, messageY + 30);
+                drawCenteredLarge("¡Hurra!", messageX, messageY);
+                drawCenteredSmall("Your drink is being poured", messageX, messageY + 60);
 				feedBackFbo.end();
                 serial.writeByte('o');
                 break;
@@ -397,9 +429,9 @@ void ofApp::update() {
             case RESET: {
                 serial.writeByte('c');
                 
-                int i = ofRandom(numPoses);
-                int j = ofRandom(numPoses-1);
-                int k = ofRandom(numPoses-2);
+                int i = ofRandom(classifier.getNumCLasses());
+                int j = ofRandom(classifier.getNumCLasses() -1);
+                int k = ofRandom(classifier.getNumCLasses() -2);
                 j += j >= i;
                 k += k >= std::min(i, j);
                 k += k >= std::max(i, j);
@@ -416,8 +448,10 @@ void ofApp::update() {
             case TRYAGAIN: {
                 // statements
                 feedBackFbo.begin();
+				ofSetColor(255);
                 speech.draw(WIDTH/2 - 763/2, yellow_box, 763, 389);
-                drawCentered(&font_small,"You need to be faster than that - Try again!", messageX, messageY);
+				drawCenteredLarge("¡Failed!", messageX, messageY);
+                drawCenteredSmall("Try again..", messageX, messageY+60);
                 feedBackFbo.end();
                 
                 if (chainevent.getDuration() - chainevent.getTime() < 0.1)chainevent.setTo(PLAYING);
@@ -429,27 +463,20 @@ void ofApp::update() {
     }
     else if (numHumansInView>1) {
 		feedBackFbo.begin();
+		ofSetColor(255);
         speech.draw(WIDTH/2 - 763/2, yellow_box, 763, 389);
-		drawCentered(&font_large,"¡one at a time!", messageX, messageY);
+		drawCenteredLarge("¡Uno, por favor!", messageX, messageY);
 		feedBackFbo.end();
 	}
 	else {
         feedBackFbo.begin();
+		ofSetColor(255);
         speech.draw(WIDTH/2 - 763/2, yellow_box, 763, 389);
-        drawCentered(&font_large,"¡Hola Senor!", messageX, messageY);
-        drawCentered(&font_small,"Step right up to get your drink!", messageX, messageY + 30);
+        drawCenteredLarge("¡Hola Senor!", messageX, messageY);
+        drawCenteredSmall("Step right up to get your drink", messageX, messageY + 60);
         feedBackFbo.end();
     }
 
-	userFbo.begin();
-    ofClear(0);
-	ofSetColor(255, 255, 255);
-	ofNoFill();
-	for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
-		//theUsers[i].draw();
-        drawUserWithPngs(theUsers[i].circlePoints, 1);
-	}
-	userFbo.end();
 
 	box2d.update();
     
@@ -468,15 +495,28 @@ void ofApp::update() {
 void ofApp::reset() {
     //classifier.clearTrainingInstances();
 }
+void ofApp::drawCenteredLarge(string str, int x, int y) {
+	ofSetColor(34,38,76);
+	//ofSetColor(255, 0, 0);
+
+	int w = font_large.getStringBoundingBox(str, 0, 0).width/2;
+	font_large.drawString(str, x - w, y);
+}
+void ofApp::drawCenteredSmall(string str, int x, int y) {
+	ofSetColor(34, 38, 76);
+	//ofSetColor(255, 0, 0);
+	int w =font_small.getStringBoundingBox(str, 0, 0).width/2;
+	font_small.drawString(str, -w + x, y);
+}
 void ofApp::drawUserWithPngs(vector<ofVec2f> p, int pngs){
 
 // torso
 	ofVec2f mean = (p[2] + p[5] + p[8] + p[11]) / 4;
 	ofPushMatrix();
-	ofTranslate(mean.x + torso.get().x, mean.y + torso.get().y);
+	ofTranslate(mean.x , mean.y );
 	ofRotate(getAngle(p[1], p[14]) - 90);
-	float w = (p[5] - p[2]).length() * s_torso;
-	float h = (p[1] - getMean(p[8], p[11])).length() * s_torso;
+	float w = (p[5] - p[2]).length() ;
+	float h = (p[1] - getMean(p[8], p[11])).length() ;
 	int img = 13;
 	if (w / h < bellyThreshold)img = 1;
 	w = MAX(30, w);
@@ -490,7 +530,7 @@ void ofApp::drawUserWithPngs(vector<ofVec2f> p, int pngs){
 	for (int i = 0; i < indx.size(); i++) {
 		float rotation = getAngle(p[indx[i][0]], p[indx[i][1]]);
 		ofVec2f position = getMean(p[indx[i][0]], p[indx[i][1]]);
-		float w = bodyPartImages[i].getWidth();
+		float w = bodyPartImages[i + pngs * 14].getWidth();
 		float h = (p[indx[i][1]] - p[indx[i][0]]).length();
 		ofPushMatrix();
 		ofTranslate(position.x + pos_parts[i].get().x, position.y + pos_parts[i].get().y);
@@ -499,18 +539,19 @@ void ofApp::drawUserWithPngs(vector<ofVec2f> p, int pngs){
 		ofPopMatrix();
 
 		if(indx[i][2]>0) {
-			h = bodyPartImages[indx[i][2]].getHeight();
+			h = bodyPartImages[indx[i][2] + pngs * 14].getHeight();
+			w = bodyPartImages[indx[i][2] + pngs * 14].getWidth();
 			ofPushMatrix();
-			ofTranslate(p[indx[i][0]].x + pos_parts[8].get().x, p[indx[i][0]].y + pos_parts[8].get().y);
+			ofTranslate(p[indx[i][0]].x , p[indx[i][0]].y );
 			ofRotate(rotation - 90);
-			bodyPartImages[indx[i][2] + pngs*14].draw(-(w*s_parts[8]) / 2, -(h*s_parts[8]) / 2, w*s_parts[8], h*s_parts[8]);
+			bodyPartImages[indx[i][2] + pngs*14].draw(-(w*s_parts[8]/2), -(h*s_parts[8]/2), w*s_parts[8], h*s_parts[8]);
 			ofPopMatrix();
 		}
 	}
 
     //head
 	ofPushMatrix();
-	ofTranslate(getMean(p[0], p[1]).x + head.get().x, getMean(p[0], p[1]).y + head.get().y);
+	ofTranslate(getMean(p[0], p[1]).x , getMean(p[0], p[1]).y );
 	ofRotate(getAngle(p[0], p[1])-90);
 	bodyPartImages[8 + pngs*14].draw(-(bodyPartImages[8+ pngs*14].getWidth()*s_head) / 2, -(bodyPartImages[8+ pngs*14].getHeight()*s_head)/2, bodyPartImages[8+ pngs*14].getWidth()*s_head, bodyPartImages[8+ pngs*14].getHeight()*s_head);
 	ofPopMatrix();
@@ -527,17 +568,21 @@ void ofApp::draw() {
     
     ofPushMatrix();
     ofScale(0.3f, 0.3f);
-    ofSetColor(20, 20, 100);
-    ofDrawRectangle(0, 0, WIDTH, HEIGHT);
+    //ofSetColor(20, 20, 100);
+    //ofDrawRectangle(0, 0, WIDTH, HEIGHT);
     ofSetColor(255);
 	feedBackFbo.draw(0, 0);
-    userFbo.draw(0,0);
-	
+	ofPushMatrix();
+	ofTranslate(0, top);
+	if (drinkSequence[currentDrinkSequence]<poseImages.size())poseImages[drinkSequence[currentDrinkSequence]].draw(0, 0, WIDTH, HEIGHT);
+	for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
+		drawUserWithPngs(theUsers[i].circlePoints, drawUserOrbartender);
+	}
+	ofPopMatrix();
     ofPopMatrix();
     
     gui.draw();
-	//learnedPoses.draw(0, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
-	//test.draw(learnedPoses.getWidth() / 4, 0, learnedPoses.getWidth() / 4, learnedPoses.getHeight() / 4);
+
     
     if(debug){
         classifier.drawAllLabels();
@@ -565,6 +610,7 @@ void ofApp::keyReleased(int key) {
     if(key == OF_KEY_TAB){
         classifier.tryNewClassifier();
     }
+	if (key == 'b')drawUserOrbartender = !drawUserOrbartender;
 }
 void ofApp::echoArduino() {
     

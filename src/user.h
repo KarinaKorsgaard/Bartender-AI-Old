@@ -84,7 +84,7 @@ public:
 			
         }
 		dontDraw = zeroPoints > 2;
-        isInView = pointsInView > 4;
+		isInView = true;//pointsInView > 4;
        // box2d.update();
        // circles[0]->setPosition(200, 200);
     }
