@@ -14,8 +14,9 @@ typedef enum {
     THINKING,
     TRAINING,
     PLAYING, // these can have any name you want, eg STATE_CLAP etc
-    HIT1,
-    HIT2,
+    POSE1,
+    POSE2,
+    POSE3,
     TRYAGAIN,
     PAUSE,
     POUR,

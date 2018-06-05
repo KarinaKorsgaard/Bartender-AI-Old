@@ -41,9 +41,9 @@ public:
     void exit();
     
     int session = 0;
-    void drawUserWithPngs(vector<ofVec2f> p);
+    void drawUserWithPngs(vector<ofVec2f> p, int pngs);
 	vector<ofImage> bodyPartImages;
-	
+    ofImage logo, backgound, speech, speech_red;
     
     float getAngle(ofVec2f p1, ofVec2f p2){
         return float(atan2(p2.y - p1.y, p2.x - p1.x) * 180 / PI);
@@ -55,11 +55,19 @@ public:
     GestureLearner classifier;
     ofxOscReceiver r;
     vector<user> theUsers;
+    user bartender;
+    
     ofxPanel gui;
-    ofParameter<float>left, right, top, bottom, scale, bellyThreshold, prababilityThreshold;
+    ofParameter<float>left, right, top, bottom, bellyThreshold, prababilityThreshold;
+    ofParameter<int>yellow_box, red_box;
     ofParameter<bool>clearSample, addSamples, train;
-
-
+    ofParameterGroup bodyGroup;
+    ofParameter<ofVec2f>torso, head;
+    ofParameter<float>s_torso, s_head;
+    vector<ofParameter<ofVec2f>> pos_parts;
+    vector<ofParameter<float>> s_parts;
+    
+    
      GRT::VectorFloat getSample(user u) {
 
         GRT::VectorFloat sample(18*2);
@@ -88,11 +96,31 @@ public:
 	ofFbo userFbo;
 	ofFbo feedBackFbo;
 	
-	ofTrueTypeFont font;
+	ofTrueTypeFont font_small, font_large;
 
 	ofxBox2d box2d;
     
     vector<vector<double>>averagePoses;
     int numSamples;
+    
+    ofShader yellowShader;
+    
+    void drawCentered(ofTrueTypeFont *font, string s,int x,int y){
+        font->drawString(s, -(font->getStringBoundingBox(s,0,0).width / 2) + x, y);
+    }
+    // Serial
+    ofSerial    serial;
+    bool        bSendSerialMessage;            // a flag for sending serial
+    char        bytesRead[3];                // data from serial, we will be trying to read 3
+    char        bytesReadString[4];            // a string needs a null terminator, so we need 3 + 1 bytes
+    int            nBytesRead;                    // how much did we read?
+    int            nTimesRead;                    // how many times did we read?
+    float        readTime;                    // when did we last read?
+    
+    void readArduino();
+    void echoArduino();
+    bool echo = false;
+    double echoTimer = 0.0;
+    int deviceCount = 0;
     
 };
