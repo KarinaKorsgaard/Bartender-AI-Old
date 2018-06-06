@@ -21,6 +21,8 @@ typedef enum {
     PAUSE,
     POUR,
     RESET,
+    TOOMANY,
+    NOONE,
     EMPTY
 } State;
 
@@ -33,7 +35,7 @@ public:
     vector<bool> looping;
     bool done = true;
     int eventNumber = 0;
-    
+    bool isfirstframe;
     void addEvent(double duration, State name, bool loop = false) {
         timers.push_back(0.0);
         durations.push_back(duration);
@@ -48,7 +50,7 @@ public:
             if (timers[eventNumber] >= durations[eventNumber] + .3 && !looping[eventNumber]) {
                 timers[eventNumber] = 0.0;
                 eventNumber++;
-                
+                isfirstframe = true;
                 if (eventNumber > timers.size() - 1) {
                     eventNumber = 0;
                     done = true;
@@ -62,14 +64,17 @@ public:
         cout << "begin events" << endl;
         done = false;
         eventNumber = 0;
+        isfirstframe = true;
         for (int i = 0; i<timers.size(); i++) {
             timers[i] = 0.0;
         }
     }
     
     void setTo(State state) {
+        isfirstframe = true;
         for (int i = 0; i<timers.size(); i++) {
             timers[i] = 0.0;
+            
         }
         for (int i = 0; i<eventName.size(); i++) {
             if (eventName[i] == state) {
@@ -79,6 +84,7 @@ public:
         }
     }
     void setToEmpty(int i = 0) {
+        isfirstframe = true;
         if (i == 0) {
             done = true;
             eventNumber = 0;
@@ -103,10 +109,12 @@ public:
         else return eventName[eventNumber];
     }
     void next() {
+        isfirstframe = true;
         eventNumber++;
         eventNumber = eventNumber%timers.size();
     }
     void back() {
+        isfirstframe = true;
         timers[eventNumber] = 0.0;
         eventNumber--;
         eventNumber = eventNumber%timers.size();

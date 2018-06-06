@@ -83,7 +83,9 @@ public:
     }
     
     void clearSample(int l){
-        trainingData.removeSample(l);
+        for(int i = 0; i<trainingData.getNumSamples();i++){
+            if(trainingData[i].getClassLabel()==l)trainingData.removeSample(i);
+        }
     }
 
     float probability;

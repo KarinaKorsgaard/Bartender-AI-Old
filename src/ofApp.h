@@ -12,6 +12,7 @@
 #include "user.h"
 #include "ofxGui.h"
 #include "learner.h"
+#include "feedback.h"
 #define MAX_USERS 3
 #define NUM_DRINKS 1
 
@@ -40,10 +41,8 @@ public:
     void reset();
     void exit();
     
-    int session = 0;
-    void drawUserWithPngs(vector<ofVec2f> p, int pngs);
-	vector<ofImage> bodyPartImages;
-    ofImage logo, backgound, speech, speech_red;
+    
+    
     
     float getAngle(ofVec2f p1, ofVec2f p2){
         return float(atan2(p2.y - p1.y, p2.x - p1.x) * 180 / PI);
@@ -51,25 +50,7 @@ public:
     ofVec2f getMean(ofVec2f p1, ofVec2f p2){
         return (p1+p2)/2.f;
     }
-
-    GestureLearner classifier;
-    ofxOscReceiver r;
-    vector<user> theUsers;
-    user bartender;
-    
-    ofxPanel gui;
-    ofParameter<float>left, right, top, bottom, bellyThreshold, prababilityThreshold;
-    ofParameter<int>yellow_box, red_box;
-    ofParameter<bool>clearSample, addSamples, train;
-    ofParameterGroup bodyGroup;
-    ofParameter<ofVec2f>torso, head;
-    ofParameter<float>s_torso, s_head;
-    vector<ofParameter<ofVec2f>> pos_parts;
-    vector<ofParameter<float>> s_parts;
-    
-    
-     GRT::VectorFloat getSample(user u) {
-
+    GRT::VectorFloat getSample(user u) {
         GRT::VectorFloat sample(18*2);
         int indx = 0;
         for (auto p : u.points) {
@@ -79,34 +60,54 @@ public:
         }
         return sample;
     }
-	 bool drawUserOrbartender;
-    ChainEvent chainevent;
-	bool debug = false;
+
+
+    
+    ofxPanel gui;
+    ofParameter<float>left, right, top, bottom, bellyThreshold, prababilityThreshold;
+    ofParameter<int>yellow_box, red_box;
+    ofParameter<bool>clearSample, addSamples, train;
+    ofParameterGroup bodyGroup;
+    ofParameter<ofVec2f>torso, head;
+    ofParameter<float>s_torso, s_head;
+    
+    vector<ofParameter<ofVec2f>> pos_parts;
+    vector<ofParameter<float>> s_parts;
+    vector<user> theUsers;
     vector<int> drinkSequence;
+    vector<ofImage>poseImages;
+    vector<string>parts;
+    vector<vector<double>>averagePoses;
+    vector<ofImage> bodyPartImages;
+    ofImage logo, backgound, speech, speech_red;
+    
+    user bartender;
+    GestureLearner classifier;
+    ofxOscReceiver r;
+    ChainEvent chainevent;
+    Feedback feedback;
+    
+    void drawUserWithPngs(vector<ofVec2f> p, int pngs);
+    
+    bool drawUserOrbartender;
+    bool debug = false;
+    bool isFrameNew = false;
+    
+    
+    ofFbo learnedPoses;
+    ofFbo render;
+    
+    ofxBox2d box2d;
+
     int currentDrinkSequence = 0;
     int numPoses = 0;
     int numHumans;
     int numHumansInView;
-    vector<ofImage>poseImages;
-    
-    vector<string>parts;
-    ofFbo learnedPoses;
-    bool isFrameNew = false;
-
-	ofFbo userFbo;
-	ofFbo feedBackFbo;
-	
-	ofTrueTypeFont font_small, font_large;
-
-	ofxBox2d box2d;
-    
-    vector<vector<double>>averagePoses;
     int numSamples;
+    int session = 0;
     
     ofShader yellowShader;
     
-	void drawCenteredSmall(string str, int x, int y);
-	void drawCenteredLarge(string str, int x, int y);
     // Serial
     ofSerial    serial;
     bool        bSendSerialMessage;            // a flag for sending serial
@@ -121,5 +122,6 @@ public:
     bool echo = false;
     double echoTimer = 0.0;
     int deviceCount = 0;
+    
     
 };

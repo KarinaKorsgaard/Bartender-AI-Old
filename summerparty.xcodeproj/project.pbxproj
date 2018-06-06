@@ -533,8 +533,9 @@
 		B4BB2D6A3717A8F7F88D52CD /* b2MotorJoint.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = b2MotorJoint.cpp; path = ../../../addons/ofxBox2d/libs/Box2D/Dynamics/Joints/b2MotorJoint.cpp; sourceTree = SOURCE_ROOT; };
 		B4EC6494DEF343364071A368 /* MedianFilter.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = MedianFilter.cpp; path = ../../../addons/ofxGrt/libs/grt/GRT/PreProcessingModules/MedianFilter.cpp; sourceTree = SOURCE_ROOT; };
 		B5F4DAC1D1D6E554344D0525 /* FIRFilter.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = FIRFilter.cpp; path = ../../../addons/ofxGrt/libs/grt/GRT/PreProcessingModules/FIRFilter.cpp; sourceTree = SOURCE_ROOT; };
-		B6282D0D20C6A2E9001971B0 /* shader.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shader.frag; sourceTree = "<group>"; };
-		B6282D0E20C6A2E9001971B0 /* shader.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shader.vert; sourceTree = "<group>"; };
+		B6282D1020C7BDED001971B0 /* shader.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; name = shader.frag; path = bin/data/shader.frag; sourceTree = SOURCE_ROOT; };
+		B6282D1120C7BDED001971B0 /* shader.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; name = shader.vert; path = bin/data/shader.vert; sourceTree = SOURCE_ROOT; };
+		B6282D1220C7BED5001971B0 /* feedback.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = feedback.h; sourceTree = "<group>"; };
 		B65F03DD120B0269B67632AE /* DoubleMovingAverageFilter.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = DoubleMovingAverageFilter.cpp; path = ../../../addons/ofxGrt/libs/grt/GRT/PreProcessingModules/DoubleMovingAverageFilter.cpp; sourceTree = SOURCE_ROOT; };
 		B75D46D6B41E78DF2B519A18 /* b2BroadPhase.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = b2BroadPhase.cpp; path = ../../../addons/ofxBox2d/libs/Box2D/Collision/b2BroadPhase.cpp; sourceTree = SOURCE_ROOT; };
 		B83147E8E0DC97F8BEBB8844 /* ThreadPool.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = ThreadPool.cpp; path = ../../../addons/ofxGrt/libs/grt/GRT/Util/ThreadPool.cpp; sourceTree = SOURCE_ROOT; };
@@ -1785,9 +1786,10 @@
 			children = (
 				E4B69E1D0A3A1BDC003C02F2 /* main.cpp */,
 				E4B69E1E0A3A1BDC003C02F2 /* ofApp.cpp */,
+				B6282D1220C7BED5001971B0 /* feedback.h */,
 				E4B69E1F0A3A1BDC003C02F2 /* ofApp.h */,
-				B6282D0D20C6A2E9001971B0 /* shader.frag */,
-				B6282D0E20C6A2E9001971B0 /* shader.vert */,
+				B6282D1020C7BDED001971B0 /* shader.frag */,
+				B6282D1120C7BDED001971B0 /* shader.vert */,
 				91D96B292AF25645FFFE3D61 /* learner.h */,
 				FD9654B0FA43E0BAF8B53BB9 /* chainEvent.h */,
 				5939D84F8D015C2971814643 /* user.h */,
