@@ -77,7 +77,7 @@ public:
     vector<int> drinkSequence;
     vector<ofImage>poseImages;
     vector<string>parts;
-    vector<vector<double>>averagePoses;
+    vector<vector<ofVec2f>>averagePoses;
     vector<ofImage> bodyPartImages;
     ofImage logo, backgound, speech, speech_red;
     
@@ -88,7 +88,8 @@ public:
     Feedback feedback;
     
     void drawUserWithPngs(vector<ofVec2f> p, int pngs);
-    
+	void pose(int _user, int _posenum);
+
     bool drawUserOrbartender;
     bool debug = false;
     bool isFrameNew = false;
@@ -106,6 +107,8 @@ public:
     int numSamples;
     int session = 0;
     
+	bool jumpToNext = false;
+
     ofShader yellowShader;
     
     // Serial

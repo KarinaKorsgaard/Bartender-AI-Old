@@ -17,9 +17,9 @@ typedef enum {
     POSE1,
     POSE2,
     POSE3,
+	POUR,
     TRYAGAIN,
     PAUSE,
-    POUR,
     RESET,
     TOOMANY,
     NOONE,
@@ -71,17 +71,21 @@ public:
     }
     
     void setTo(State state) {
-        isfirstframe = true;
-        for (int i = 0; i<timers.size(); i++) {
-            timers[i] = 0.0;
-            
-        }
-        for (int i = 0; i<eventName.size(); i++) {
-            if (eventName[i] == state) {
-                eventNumber = i;
-				done = false;
-            }
-        }
+        
+		if (getName() != state) {
+			isfirstframe = true;
+			for (int i = 0; i<timers.size(); i++) {
+				timers[i] = 0.0;
+
+			}
+			for (int i = 0; i<eventName.size(); i++) {
+				if (eventName[i] == state) {
+					eventNumber = i;
+					done = false;
+				}
+			}
+		}
+		
     }
     void setToEmpty(int i = 0) {
         isfirstframe = true;
@@ -108,6 +112,7 @@ public:
         if (done)return EMPTY;
         else return eventName[eventNumber];
     }
+	
     void next() {
         isfirstframe = true;
         eventNumber++;

@@ -23,22 +23,17 @@ public:
     vector      <shared_ptr<ofxBox2dJoint> >  joints;  // joints
     
     int userId;
-    float maxX;
-    float maxY;
-    
-    int pointsInView;
-    bool isInView;
-	bool dontDraw;
-    
+	int zeroPoints = 0;
 
-
-
+	double isRemoved = 0.0;
+	double zeroCounter = 0.0;
+	
     void setup(ofxBox2d* box2d ) {
 
         //anchor.setup(box2d.getWorld(), 20, ofGetHeight()/2, 4);
 		points.resize(18);
 		circlePoints.resize(18);
-		pointsInView = 0;
+
         // first we add just a few circles
         for(int i=0; i<18; i++) {
             shared_ptr<ofxBox2dCircle> circle = shared_ptr<ofxBox2dCircle>(new ofxBox2dCircle);
@@ -72,25 +67,29 @@ public:
     }
     
     void update() {
-		int zeroPoints = 0;
-        for(int i = 0; i<points.size();i++){
-            if(points[i].x>0 && points[i].y>0) {
-				ofVec2f p1 = circles[i]->getPosition();
-				ofVec2f p2(points[i].x*WIDTH, points[i].y*HEIGHT);
-                circles[i]->setPosition(p1*0.49 + p2*0.51);
+		zeroPoints = 0;
+		isRemoved += ofGetLastFrameTime();
+
+		if(isRemoved < 1.1){
+			for (int i = 0; i<points.size(); i++) {
+				if (points[i].x>0 && points[i].y>0) {
+					ofVec2f p1 = circles[i]->getPosition();
+					ofVec2f p2(points[i].x*WIDTH, points[i].y*HEIGHT);
+					circles[i]->setPosition(p1*0.49 + p2*0.51);
+					zeroPoints++;
+				}
+
+				circlePoints[i] = circles[i]->getPosition();
+
 			}
-			else zeroPoints++;
-			circlePoints[i] = circles[i]->getPosition();
-			
-        }
-		dontDraw = zeroPoints > 2;
-		isInView = true;//pointsInView > 4;
-       // box2d.update();
-       // circles[0]->setPosition(200, 200);
+		}
+		if (zeroPoints < 4) zeroCounter += ofGetLastFrameTime();
+		else zeroCounter = 0.0;
     }
 
     void addPoint(int i, float x, float y) {
 		points[i].set(x, y);
+		isRemoved = 0.0;
 		 //cout << x << " " << y << endl;
     }
     void clearPoints(){ points.clear(); points.resize(18); }

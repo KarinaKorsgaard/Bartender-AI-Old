@@ -13,15 +13,66 @@ void ofApp::setup() {
     ofEnableAntiAliasing();
     
     yellowShader.load("shader");
-    
+	
+	ofDisableArbTex();
+	learnedPoses.allocate(WIDTH, HEIGHT, GL_RGBA);
+	learnedPoses.begin();
+	ofClear(0);
+	learnedPoses.end();
+	ofEnableArbTex();
+
+	render.allocate(WIDTH, HEIGHT, GL_RGBA);
+	render.begin();
+	ofClear(0);
+	render.end();
+
     for (int i = 0; i<25; i++) {
-        vector<double>newAverage;
-        newAverage.resize(18 * 2);
+        vector<ofVec2f>newAverage;
+        newAverage.resize(18);
         averagePoses.push_back(newAverage);
-        
+		
+		ofDisableArbTex();
         ofImage img;
-        if (img.load("outputs\\" + ofToString(i) + ".png"))poseImages.push_back(img);
+		
+		ofSetColor(255);
+		if (img.load("outputs\\" + ofToString(i) + ".png"))
+		{
+			/*cout << "image loaded" << endl;
+			
+			learnedPoses.begin();
+			ofClear(0);
+			yellowShader.begin();
+			yellowShader.setUniformTexture("tex", img.getTexture(), 0);
+			yellowShader.setUniform2f("res", img.getWidth(), img.getHeight());
+			img.draw(0, 0, img.getWidth(), img.getHeight());
+			yellowShader.end();
+			learnedPoses.end();
+
+			ofPixels pix;
+			learnedPoses.getTexture().readToPixels(pix);
+
+			ofSaveImage(pix, "outputs\\" + ofToString(i) + ".png");
+			
+			img.load("outputs\\" + ofToString(i) + ".png");
+			*/
+			learnedPoses.begin();
+			ofClear(0);
+			yellowShader.begin();
+			yellowShader.setUniformTexture("tex0", img.getTexture(), 0);
+			yellowShader.setUniform2f("res", WIDTH, HEIGHT);
+			img.draw(0, 0, WIDTH, HEIGHT);
+			yellowShader.end();
+			learnedPoses.end();
+
+			ofPixels pix;
+			learnedPoses.getTexture().readToPixels(pix);
+			ofSaveImage(pix, "outputs\\" + ofToString(i) + ".png");
+			img.load("outputs\\" + ofToString(i) + ".png");
+			poseImages.push_back(img);
+		}
     }
+	ofEnableArbTex();
+
     logo.load("logo.png");
     backgound.load("background.png");
     speech.load("speech.png");
@@ -50,31 +101,24 @@ void ofApp::setup() {
     
     classifier.setup();
     
-    chainevent.addEvent(3., TOOMANY, true);
-    chainevent.addEvent(3., NOONE, true);
+
     chainevent.addEvent(3., BEGIN_LEARNING);
     chainevent.addEvent(3., LEARNING);
     chainevent.addEvent(20., TRAINING, true);
-    chainevent.addEvent(5., PLAYING);
+    chainevent.addEvent(2., PLAYING);
     chainevent.addEvent(3., POSE1, true);
     chainevent.addEvent(3., POSE2);
     chainevent.addEvent(3., POSE3);
     chainevent.addEvent(5., POUR);
-    chainevent.addEvent(3., RESET);
-    chainevent.addEvent(3., TRYAGAIN);
+	chainevent.addEvent(3., RESET);
+	chainevent.addEvent(3., TRYAGAIN);
+	chainevent.addEvent(3., TOOMANY, true);
+	chainevent.addEvent(3., NOONE, true);
     
     
     chainevent.setTo(PLAYING);
     
-    learnedPoses.allocate(WIDTH, HEIGHT, GL_RGBA);
-    learnedPoses.begin();
-    ofClear(0);
-    learnedPoses.end();
-    
-    render.allocate(WIDTH, HEIGHT, GL_RGBA);
-    render.begin();
-    ofClear(0);
-    render.end();
+
     
     gui.setup();
     gui.add(top.set("user_top", 0, 0, 1000));
@@ -163,7 +207,8 @@ void ofApp::update() {
     while (r.hasWaitingMessages()) {
         ofxOscMessage m;
         r.getNextMessage(m);
-        numHumans = 0;
+        
+		//cout << numHumans <<" "<< m.getAddress()<<endl;
         ///cout << "something" << endl;
         /* bodies / 72057594037928883 / hands / Left
          / bodies / 72057594037928883 / hands / Right
@@ -195,52 +240,55 @@ void ofApp::update() {
          */
         //cout << m.getAddress() << endl;
         // cout << m.getAddress() << endl;
-        if (m.getAddress() == "/nohumans") {
-            numHumans = 0;
-        }
-        else
-        {
+
+
             int id = ofToInt(ofSplitString(m.getAddress(), "person").back());
-            
-            
+			if (id > 0)cout << m.getAddress() << endl;
             if (id<theUsers.size()) {
-                
-                theUsers[id].pointsInView = 0;
-                numHumans = MAX(id + 1, numHumans);
-                
-                
+
+
                 int indx = 0;
                 for (int i = 0; i < m.getNumArgs(); i += 3) {
                     if (m.getArgType(i) == 102) {
                         float x = 1. - (m.getArgAsFloat(i) / SCALE_X);
                         float y = m.getArgAsFloat(i + 1) / SCALE_Y;
-                        // cout << x<< " "  << y << endl;
-                        // if(x > left && x < right+left && y > top && y < bottom+top){
-                        //     theUsers[id].pointsInView++;
-                        // cout << "true" << endl;
-                        // }
-                        
                         theUsers[id].addPoint(indx, x, y);
                         indx++;
                     }
                 }
             }
-        }
+        
     }
     
     
     
     int userInView = -1;
-    numHumansInView = 0;
-    
-    for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
+	numHumansInView = -1;
+	numHumans = theUsers.size();
+
+    for (int i = 0; i < theUsers.size(); i++) {
         theUsers[i].update();
-        if (theUsers[i].isInView) {
+		if (theUsers[i].isRemoved > 1.) {
+			numHumans--;
+
+		}
+		else if (theUsers[i].zeroCounter < 1.5) {
             numHumansInView ++;
             userInView = i;
+			//cout << "removed= " << theUsers[i].isRemoved<< " zero: "<< theUsers[i].zeroCounter << endl;
         }
     }
-    
+
+	if (numHumansInView>0) {
+		chainevent.setTo(TOOMANY);
+		 cout << "too many? " << numHumansInView << " total " << numHumans << endl;
+	}
+	else if (numHumansInView<0) {
+		chainevent.setTo(NOONE);
+		 cout << "no one here? " << numHumansInView << " total " << numHumans << endl;
+	}
+	
+
     feedback.update();
     
     
@@ -252,14 +300,7 @@ void ofApp::update() {
     int line1 = 75;
     int line2 = 55;
     
-    
-    
-    if (numHumansInView>1) {
-        chainevent.setTo(TOOMANY);
-    }
-    if (numHumans==0) {
-        chainevent.setTo(NOONE);
-    }
+   
     chainevent.update();
 
     switch (chainevent.getName()) {
@@ -276,50 +317,47 @@ void ofApp::update() {
             GRT::VectorFloat sample = getSample(u);
             
             classifier.addSample(sample, numPoses);
-            std::transform (averagePoses[numPoses].begin(), averagePoses[numPoses].end(), sample.begin(), averagePoses[numPoses].begin(), std::plus<double>());
+            std::transform (averagePoses[numPoses].begin(), averagePoses[numPoses].end(), u.circlePoints.begin(), averagePoses[numPoses].begin(), std::plus<ofVec2f>());
             numSamples ++;
-            
-            
-            
+
             if (chainevent.getTime()>chainevent.getDuration() - 0.1) {
                 
                 std::transform(averagePoses[numPoses].begin(), averagePoses[numPoses].end(), averagePoses[numPoses].begin(),
-                               std::bind1st(std::multiplies<double>(),1.0/double(numSamples+1)));
+                               std::bind1st(std::multiplies<ofVec2f>(),1.0/double(numSamples+1)));
                 
                 learnedPoses.begin();
                 ofClear(0);
                 ofFill();
-                ofSetColor(254, 185, 24);
-                drawUserWithPngs(u.circlePoints, 0);
+                ofSetColor(255);
+                drawUserWithPngs(averagePoses[numPoses], 0);
                 learnedPoses.end();
                 
                 ofPixels pix;
                 learnedPoses.readToPixels(pix);
                 ofSaveImage(pix, "outputs\\" + ofToString(numPoses) + ".png");
-                
-                ofDisableArbTex();
-                ofImage img;
-                img.load("outputs\\" + ofToString(numPoses) + ".png");
-                ofEnableArbTex();
-                
-                
-                
-                yellowShader.begin();
-                learnedPoses.begin();
-                ofClear(0);
-                yellowShader.setUniformTexture("tex0", img.getTexture(), 1);
-                ofSetColor(255);
-                learnedPoses.draw(0, 0, WIDTH, HEIGHT);
-                learnedPoses.end();
-                yellowShader.end();
-                
-                
-                learnedPoses.readToPixels(pix);
-                ofSaveImage(pix, "outputs\\" + ofToString(numPoses) + ".png");
-                img.load("outputs\\" + ofToString(numPoses) + ".png");
+				ofDisableArbTex();
+				ofImage img;
+				img.load("outputs\\" + ofToString(numPoses) + ".png");
+				ofEnableArbTex;
+
+				learnedPoses.begin();
+				ofClear(0);
+				yellowShader.begin();
+				yellowShader.setUniformTexture("tex0", img.getTexture(), 0);
+				yellowShader.setUniform2f("res", WIDTH, HEIGHT);
+				img.draw(0, 0, WIDTH, HEIGHT);
+				yellowShader.end();
+				learnedPoses.end();
+
+				pix.clear();
+				learnedPoses.readToPixels(pix);
+				ofSaveImage(pix, "outputs\\" + ofToString(numPoses) + ".png");
+
+				ofImage newImg;
+				newImg.load("outputs\\" + ofToString(numPoses) + ".png");
                 if (numPoses >= poseImages.size())
-                    poseImages.push_back(img);
-                else poseImages[numPoses] = img;
+                    poseImages.push_back(newImg);
+                else poseImages[numPoses] = newImg;
                 
                 numSamples = 0;
                 chainevent.next();
@@ -332,135 +370,82 @@ void ofApp::update() {
         case TRAINING: {
             classifier.train();
             chainevent.next();
-            break;
-            
+            break;   
         }
         case PLAYING: {
-            user u = theUsers[userInView];
-            GRT::VectorFloat sample = getSample(u);
-            
             if(chainevent.isfirstframe){
+				feedback.removeDrawable(5, 0.01);
                 feedback.addImage(&speech, WIDTH/2, yellow_box, 763, 389, 1);
                 feedback.addText("¡Preparar!", messageX, messageY, 2, true, 1., ofColor(34,38,76));
                 feedback.addText("Hit all three swag poses to", messageX, messageY + line1, 2, false, 1., ofColor(34,38,76));
                 feedback.addText("open the drink valve", messageX, messageY + line1 + line2, 2, false, 1., ofColor(34,38,76));
                 chainevent.isfirstframe = false;
+				cout << "sat to start" << endl;
             }
             break;
         }
         case POSE1: {
-            user u = theUsers[userInView];
-            GRT::VectorFloat sample = getSample(u);
+			
+
             if(chainevent.isfirstframe){
                 //feedback.addImage(speech,WIDTH/2 - 763/2, yellow_box, 763, 389, 1);
                 feedback.removeDrawable(2, 0.5);
+				feedback.removeDrawable(5, 0.01);
+				feedback.addImage(&poseImages[drinkSequence[0]], WIDTH / 2, top, WIDTH, HEIGHT, 5, 0.1);
                 feedback.addText("¡Plantear Uno!", messageX, messageY, 2, true, 1., ofColor(34,38,76));
                 feedback.addText("Flamingo, Flamingo", messageX, messageY + line1, 2, false, 1., ofColor(34,38,76));
                 //feedback.addText("open the drink valve", messageX, messageY + 60 + 40, 2, false, 1., ofColor(34,38,76));
                 chainevent.isfirstframe = false;
             }
-            
-            currentDrinkSequence = 0;
-            classifier.updateSample(sample);
-            int currentPose = classifier.label;
-            
-            /* if(int(chainevent.getTime())%10 == 1){
-             //feedback.removeDrawable(2, 0.5);
-             feedback.addImage(red_box,WIDTH/2, red_box, 763, 389, 3);
-             feedback.addText("¡Incorrecto!", messageX, messageY, 3, true, 1., ofColor(34,38,76));
-             //feedback.addText("Flamingo, Flamingo", messageX, messageY + 60, 2, false, 1., ofColor(34,38,76));
-             //feedback.addText("open the drink valve", messageX, messageY + 60 + 40, 2, false, 1., ofColor(34,38,76));
-             chainevent.isfirstframe = false;
-             }
-             if(int(chainevent.getTime())%10 == 7){
-             feedback.removeDrawable(3, 0.5);
-             }
-             */
-            
-            if (currentPose == drinkSequence[currentDrinkSequence] && classifier.probability > prababilityThreshold)
-            {
-                feedback.removeDrawable(2, 0.5);
-                feedback.addText("¡Correcto!", messageX, messageY, 2, true, 1., ofColor(34,38,76));
-                feedback.addText("Do the next pose!", messageX, messageY + line1, 2, false, 1., ofColor(34,38,76));
-                chainevent.isfirstframe = false;
-                
-                currentDrinkSequence ++;
-                test.update();
-                ofSaveImage(test.getPixels(), "images\\session_"+ofToString(session)+"1.png");
-                chainevent.next();
-            }
-            
+			pose(userInView, 0);
             break;
         }
-            
-            
+    
         case POSE2: {
-            user u = theUsers[userInView];
-            GRT::VectorFloat sample = getSample(u);
+			
+
             if(chainevent.isfirstframe){
                 feedback.removeDrawable(2, 0.5);
-                feedback.addText("¡Next pose! - "+ofToString(chainevent.getDuration()- chainevent.getTime(), 1), messageX, messageY, 2, true, 1., ofColor(34,38,76));
+				feedback.removeDrawable(5, 0.01);
+				feedback.addImage(&poseImages[drinkSequence[1]], WIDTH / 2, top, WIDTH, HEIGHT, 5, 0.1);
+                feedback.addText("¡Next pose!", messageX, messageY, 2, true, 1., ofColor(34,38,76));
                 chainevent.isfirstframe = false;
             }
-            
-            
-            classifier.updateSample(sample);
-            int currentPose = classifier.label;
-            if (currentPose == drinkSequence[currentDrinkSequence] && classifier.probability > prababilityThreshold) {
-                test.update();
-                ofSaveImage(test.getPixels(), "images\\session_"+ofToString(session)+"2.png");
-                currentDrinkSequence ++;
-                chainevent.next();
-            }
-            if (chainevent.getDuration() - chainevent.getTime() < 0.1){
-                chainevent.setTo(TRYAGAIN);
-                session++;
-            }
-            
+			pose(userInView, 1);
             break;
         }
         case POSE3: {
-            user u = theUsers[userInView];
-            GRT::VectorFloat sample = getSample(u);
+			
             if(chainevent.isfirstframe){
                 feedback.removeDrawable(2, 0.5);
-                feedback.addText("¡Final one! - "+ofToString(chainevent.getDuration()- chainevent.getTime(), 1), messageX, messageY, 2, true, 1., ofColor(34,38,76));
+				feedback.removeDrawable(5, 0.01);
+				feedback.addImage(&poseImages[drinkSequence[2]], WIDTH / 2, top, WIDTH, HEIGHT, 5, 0.1);
+                feedback.addText("¡Final one!", messageX, messageY, 2, true, 1., ofColor(34,38,76));
                 chainevent.isfirstframe = false;
             }
-            
-            
-            classifier.updateSample(sample);
-            int currentPose = classifier.label;
-            if (currentPose == drinkSequence[currentDrinkSequence] && classifier.probability > prababilityThreshold) {
-                session++;
-                test.update();
-                ofSaveImage(test.getPixels(), "images\\session_"+ofToString(session)+"3.png");
-                chainevent.next();
-            }
-            if (chainevent.getDuration() - chainevent.getTime() < 0.1){
-                chainevent.setTo(TRYAGAIN);
-                session++;
-            }
-            
+			pose(userInView, 2);
             break;
         }
         case POUR: {
             if(chainevent.isfirstframe){
                 feedback.removeDrawable(2, 0.5);
+				feedback.removeDrawable(5, 0.01);
                 feedback.addText("¡Hurra!", messageX, messageY, 2, true, 1., ofColor(34,38,76));
                 feedback.addText("Your drink is being poured!", messageX, messageY + line1, 2, false, 1., ofColor(34,38,76));
                 chainevent.isfirstframe = false;
-            }
-            serial.writeByte('o');
+				serial.writeByte('o');
+            }else
+				serial.writeByte('c');
+            
             break;
         }
+
         case RESET: {
             if(chainevent.isfirstframe){
                 feedback.removeDrawable(2, 0.5);
                 feedback.removeDrawable(1, 0.5);
             }
-            serial.writeByte('c');
-            
+
             int i = ofRandom(classifier.getNumCLasses());
             int j = ofRandom(classifier.getNumCLasses() -1);
             int k = ofRandom(classifier.getNumCLasses() -2);
@@ -472,44 +457,54 @@ void ofApp::update() {
             drinkSequence = {i, j, k};
             cout << i<<j<<k << endl;
             
-            currentDrinkSequence = 0;
-            
             chainevent.setTo(PLAYING);
+			cout << "playing from reset" << endl;
             break;
         }
-        case TRYAGAIN: {
-            
-            if(chainevent.isfirstframe){
-                feedback.removeDrawable(2, 0.5);
-                feedback.addText("¡Failed!", messageX, messageY, 2, true, 1., ofColor(34,38,76));
-                feedback.addText("Try again..!", messageX, messageY + line1, 2, false, 1., ofColor(34,38,76));
-                chainevent.isfirstframe = false;
-            }
-            
-            if (chainevent.getDuration() - chainevent.getTime() < 0.1)chainevent.setTo(PLAYING);
-            break;
-        }
+		case TRYAGAIN: {
+
+			if (chainevent.isfirstframe) {
+				feedback.removeDrawable(2, 0.5);
+				feedback.removeDrawable(5, 0.01);
+				feedback.addText("¡Failed!", messageX, messageY, 2, true, 1., ofColor(34, 38, 76));
+				feedback.addText("Try again..!", messageX, messageY + line1, 2, false, 1., ofColor(34, 38, 76));
+				chainevent.isfirstframe = false;
+			}if (chainevent.getTime() > chainevent.getDuration() - 0.1) chainevent.setTo(RESET);
+
+			break;
+		}
         case TOOMANY: {
             if(chainevent.isfirstframe){
                 feedback.removeDrawable(2, 0.5);
                 feedback.removeDrawable(1, 0.5);
+				feedback.removeDrawable(5, 0.5);
                 feedback.addImage(&speech,WIDTH/2, yellow_box, 763, 389, 1);
                 feedback.addText("¡Uno por favor!", messageX, messageY, 2, true, 1., ofColor(34,38,76));
                 feedback.addText("One of you, step away!", messageX, messageY + line1, 2, false, 1., ofColor(34,38,76));
                 chainevent.isfirstframe = false;
             }
+			if (numHumansInView == 0) {
+				chainevent.setTo(PLAYING);
+				cout << "playing from too many" << endl;
+			}
+			break;
         }
         case NOONE: {
             if(chainevent.isfirstframe){
                 feedback.removeDrawable(2, 0.5);
                 feedback.removeDrawable(1, 0.5);
+				feedback.removeDrawable(5, 0.5);
                 feedback.addImage(&speech, WIDTH/2, yellow_box, 763, 389, 1);
                 feedback.addText("¡Hola Senor!", messageX, messageY, 2, true, 1., ofColor(34,38,76));
                 feedback.addText("Step right up to", messageX, messageY + line1, 2, false, 1., ofColor(34,38,76));
                 feedback.addText("get your drink", messageX, messageY + line1 + line2, 2, false, 1., ofColor(34,38,76));
-                
                 chainevent.isfirstframe = false;
             }
+			if (numHumansInView == 0) {
+				chainevent.setTo(PLAYING);
+				cout << "playing from no one" << endl;
+			}
+			break;
         }
         default:
             break;
@@ -527,14 +522,33 @@ void ofApp::update() {
     }
     if(clearSample){
         classifier.clearSample(numPoses);
+	//	clearSample = false;
     }
     if(train){
         chainevent.setTo(TRAINING);
         train = false;
     }
 }
-void ofApp::reset() {
-    //classifier.clearTrainingInstances();
+void ofApp::pose(int _user, int _posenum) {
+	user u = theUsers[_user];
+	GRT::VectorFloat sample = getSample(u);
+	classifier.updateSample(sample);
+	int currentPose = classifier.label;
+
+	if ((currentPose == drinkSequence[_posenum] && classifier.probability > prababilityThreshold) || jumpToNext)
+
+	{
+		test.update();
+		ofSaveImage(test.getPixels(), "images\\session_" + ofToString(session)+ ofToString(_posenum) + ".png");
+		cout << "pose is right, from: " << chainevent.getName() << " too: ";
+		chainevent.next();
+		cout << chainevent.getName() << endl;
+		jumpToNext = false;
+	}
+	if (chainevent.getDuration() - chainevent.getTime() < 0.1 && _posenum != 0) {
+		chainevent.setTo(TRYAGAIN);
+		session++;
+	}
 }
 
 //--------------------------------------------------------------
@@ -543,15 +557,18 @@ void ofApp::draw() {
     
     render.begin();
     ofClear(0);
+	feedback.draw(0, 0);
     ofPushMatrix();
-    ofTranslate(0, top);
-    if (drinkSequence[currentDrinkSequence]<poseImages.size())poseImages[drinkSequence[currentDrinkSequence]].draw(0, 0, WIDTH, HEIGHT);
+	ofTranslate(0, top);
+	ofSetColor(255);
+
     for (int i = 0; i < MIN(numHumans, theUsers.size()); i++) {
         drawUserWithPngs(theUsers[i].circlePoints, drawUserOrbartender);
     }
+
     ofPopMatrix();
    
-    feedback.draw(0, 0);
+    
     render.end();
     
     
@@ -637,6 +654,7 @@ void ofApp::keyPressed(int key) {
     if (key == 'l')chainevent.beginEvents();
     if (key == 'd')debug = !debug;
     if (key == 's')classifier.save();
+	if (key == 'j')jumpToNext = true;
 }
 
 //--------------------------------------------------------------
@@ -657,6 +675,7 @@ void ofApp::echoArduino() {
     if(echoTimer>5. && !echo) {
         serial.listDevices();
         vector <ofSerialDeviceInfo> deviceList = serial.getDeviceList();
+		for (int i = 0; i < deviceList.size(); i++)cout << deviceList[i].getDeviceName();
         echoTimer = 0.0;
         int baud = 9600;
         if(deviceList.size()>0)
