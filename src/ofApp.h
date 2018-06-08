@@ -88,6 +88,8 @@ public:
     Feedback feedback;
     
     void drawUserWithPngs(vector<ofVec2f> p, int pngs);
+	vector<vector<int>> indxes = { { 4,3,11 },{ 3,2,0 },{ 5,6,0 },{ 7,6,12 },{ 8,9,0 },{ 10,9,9 },{ 11,12,0 },{ 13,12,10 } };
+
 	void pose(int _user, int _posenum);
 
     bool drawUserOrbartender;

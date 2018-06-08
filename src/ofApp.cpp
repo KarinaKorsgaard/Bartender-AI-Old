@@ -6,7 +6,7 @@ void ofApp::setup() {
     r.setup(7000);
     
     test.listDevices();
-    test.setDeviceID(1);
+    test.setDeviceID(2);
     test.setup(SCALE_X, SCALE_Y);
     
     ofEnableAlphaBlending();
@@ -280,12 +280,12 @@ void ofApp::update() {
     }
 
 	if (numHumansInView>0) {
-		chainevent.setTo(TOOMANY);
-		 cout << "too many? " << numHumansInView << " total " << numHumans << endl;
+		//chainevent.setTo(TOOMANY);
+		 //cout << "too many? " << numHumansInView << " total " << numHumans << endl;
 	}
 	else if (numHumansInView<0) {
 		chainevent.setTo(NOONE);
-		 cout << "no one here? " << numHumansInView << " total " << numHumans << endl;
+		// cout << "no one here? " << numHumansInView << " total " << numHumans << endl;
 	}
 	
 
@@ -434,8 +434,7 @@ void ofApp::update() {
                 feedback.addText("Your drink is being poured!", messageX, messageY + line1, 2, false, 1., ofColor(34,38,76));
                 chainevent.isfirstframe = false;
 				serial.writeByte('o');
-            }else
-				serial.writeByte('c');
+            }
             
             break;
         }
@@ -444,11 +443,13 @@ void ofApp::update() {
             if(chainevent.isfirstframe){
                 feedback.removeDrawable(2, 0.5);
                 feedback.removeDrawable(1, 0.5);
+				serial.writeByte('c');
             }
-
-            int i = ofRandom(classifier.getNumCLasses());
-            int j = ofRandom(classifier.getNumCLasses() -1);
-            int k = ofRandom(classifier.getNumCLasses() -2);
+			
+				
+            int i = ofRandom(classifier.getNumCLasses() -1);
+            int j = ofRandom(classifier.getNumCLasses() -2);
+            int k = ofRandom(classifier.getNumCLasses() -3);
             j += j >= i;
             k += k >= std::min(i, j);
             k += k >= std::max(i, j);
@@ -528,6 +529,9 @@ void ofApp::update() {
         chainevent.setTo(TRAINING);
         train = false;
     }
+
+	echoArduino();
+	if (serial.isInitialized())readArduino();
 }
 void ofApp::pose(int _user, int _posenum) {
 	user u = theUsers[_user];
@@ -592,51 +596,51 @@ void ofApp::draw() {
         ofDrawRectangle(0, 0, ofGetWidth()/5, ofGetHeight()/5);
         ofPopMatrix();
         ofSetLineWidth(1);
-        
+		ofSetColor(0);
         ofDrawBitmapString("Classifier: " + classifier.currentClassifier, gui.getWidth() + 40, 10);
+		ofDrawBitmapString(ofToString(drinkSequence[0]) + " " + ofToString(drinkSequence[1]) + " " + ofToString(drinkSequence[2]), gui.getWidth() + 40, 30);
     }
 }
 void ofApp::drawUserWithPngs(vector<ofVec2f> p, int pngs){
     
-    // torso
-    ofVec2f mean = (p[2] + p[5] + p[8] + p[11]) / 4;
-    ofPushMatrix();
-    ofTranslate(mean.x , mean.y );
-    ofRotate(getAngle(p[1], p[14]) - 90);
-    float w = (p[5] - p[2]).length() ;
-    float h = (p[1] - getMean(p[8], p[11])).length() ;
-    int img = 13;
-    if (w / h < bellyThreshold)img = 1;
-    w = MAX(30, w);
-    //cout << w << " " << h << endl;
+
     
-    bodyPartImages[img + pngs*14].draw(-w / 2, -h / 2, w, h);
-    ofPopMatrix();
-    
-    vector<vector<int>> indx = { { 4,3,11 },{ 3,2,0 },{ 5,6,0 },{ 7,6,12 },{ 8,9,0 },{ 10,9,9 },{ 11,12,0 },{ 13,12,10 } };
-    
-    for (int i = 0; i < indx.size(); i++) {
-        float rotation = getAngle(p[indx[i][0]], p[indx[i][1]]);
-        ofVec2f position = getMean(p[indx[i][0]], p[indx[i][1]]);
+
+    for (int i = 0; i < indxes.size(); i++) {
+        float rotation = getAngle(p[indxes[i][0]], p[indxes[i][1]]);
+        ofVec2f position = getMean(p[indxes[i][0]], p[indxes[i][1]]);
         float w = bodyPartImages[i + pngs * 14].getWidth();
-        float h = (p[indx[i][1]] - p[indx[i][0]]).length();
+        float h = (p[indxes[i][1]] - p[indxes[i][0]]).length();
         ofPushMatrix();
         ofTranslate(position.x + pos_parts[i].get().x, position.y + pos_parts[i].get().y);
         ofRotate(rotation - 90);
         bodyPartImages[i + pngs*14].draw(-(w*s_parts[i]) / 2, -(h)/2, w*s_parts[i], h);
         ofPopMatrix();
         
-        if(indx[i][2]>0) {
-            h = bodyPartImages[indx[i][2] + pngs * 14].getHeight();
-            w = bodyPartImages[indx[i][2] + pngs * 14].getWidth();
+        if(indxes[i][2]>0) {
+            h = bodyPartImages[indxes[i][2] + pngs * 14].getHeight();
+            w = bodyPartImages[indxes[i][2] + pngs * 14].getWidth();
             ofPushMatrix();
-            ofTranslate(p[indx[i][0]].x , p[indx[i][0]].y );
+            ofTranslate(p[indxes[i][0]].x , p[indxes[i][0]].y );
             ofRotate(rotation - 90);
-            bodyPartImages[indx[i][2] + pngs*14].draw(-(w*s_parts[8]/2), -(h*s_parts[8]/2), w*s_parts[8], h*s_parts[8]);
+            bodyPartImages[indxes[i][2] + pngs*14].draw(-(w*s_parts[8]/2), -(h*s_parts[8]/2), w*s_parts[8], h*s_parts[8]);
             ofPopMatrix();
         }
     }
-    
+	// torso
+	ofVec2f mean = (p[2] + p[5] + p[8] + p[11]) / 4;
+	ofPushMatrix();
+	ofTranslate(mean.x, mean.y);
+	ofRotate(getAngle(p[1], p[14]) - 90);
+	float w = (p[5] - p[2]).length();
+	float h = (p[1] - getMean(p[8], p[11])).length();
+	int img = 13;
+	if (w / h < bellyThreshold)img = 1;
+	w = MAX(100, w);
+	//cout << w << " " << h << endl;
+
+	bodyPartImages[img + pngs * 14].draw(-w / 2, -h / 2, w, h);
+	ofPopMatrix();
     //head
     ofPushMatrix();
     ofTranslate(getMean(p[0], p[1]).x , getMean(p[0], p[1]).y );
@@ -644,8 +648,6 @@ void ofApp::drawUserWithPngs(vector<ofVec2f> p, int pngs){
     bodyPartImages[8 + pngs*14].draw(-(bodyPartImages[8+ pngs*14].getWidth()*s_head) / 2, -(bodyPartImages[8+ pngs*14].getHeight()*s_head)/2, bodyPartImages[8+ pngs*14].getWidth()*s_head, bodyPartImages[8+ pngs*14].getHeight()*s_head);
     ofPopMatrix();
     
-    echoArduino();
-    if(serial.isInitialized())readArduino();
     
 }
 
@@ -675,11 +677,11 @@ void ofApp::echoArduino() {
     if(echoTimer>5. && !echo) {
         serial.listDevices();
         vector <ofSerialDeviceInfo> deviceList = serial.getDeviceList();
-		for (int i = 0; i < deviceList.size(); i++)cout << deviceList[i].getDeviceName();
+		for (int i = 0; i < deviceList.size(); i++)cout << deviceList[i].getDeviceName()<<endl;
         echoTimer = 0.0;
         int baud = 9600;
         if(deviceList.size()>0)
-            serial.setup(deviceList[deviceCount%deviceList.size()].getDeviceName(), baud);
+            serial.setup(deviceList[deviceCount%deviceList.size()].getDeviceID(), baud);
         
         nTimesRead = 0;
         nBytesRead = 0;

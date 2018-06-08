@@ -27,7 +27,8 @@ public:
 
 	double isRemoved = 0.0;
 	double zeroCounter = 0.0;
-	
+	double introduced = 0.0;
+
     void setup(ofxBox2d* box2d ) {
 
         //anchor.setup(box2d.getWorld(), 20, ofGetHeight()/2, 4);
